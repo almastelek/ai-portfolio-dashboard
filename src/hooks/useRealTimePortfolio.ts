@@ -10,17 +10,37 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
   const { portfolios, holdings, fetchHoldings } = usePortfolio();
   const { marketData, loading, fetchMarketData } = useMarketData();
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastFetchRef = useRef<string>('');
 
   const calculatePortfolio = useCallback((): RealTimePortfolio | null => {
     return calculatePortfolioTotals(holdings, marketData, portfolios, portfolioId);
   }, [holdings, marketData, portfolios, portfolioId]);
 
-  // Fetch holdings when portfolio is available
-  useEffect(() => {
-    if (portfolioId) {
-      fetchHoldings(portfolioId);
+  // Debounced fetch holdings to prevent multiple rapid calls
+  const debouncedFetchHoldings = useCallback((id: string) => {
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
     }
-  }, [portfolioId, fetchHoldings]);
+    
+    // Only fetch if it's a different portfolio or enough time has passed
+    if (lastFetchRef.current === id) {
+      return;
+    }
+    
+    fetchTimeoutRef.current = setTimeout(() => {
+      console.log('Fetching holdings for portfolio:', id);
+      lastFetchRef.current = id;
+      fetchHoldings(id);
+    }, 100);
+  }, [fetchHoldings]);
+
+  // Fetch holdings when portfolio is available (but only once per portfolio)
+  useEffect(() => {
+    if (portfolioId && portfolioId !== lastFetchRef.current) {
+      debouncedFetchHoldings(portfolioId);
+    }
+  }, [portfolioId, debouncedFetchHoldings]);
 
   // Fetch market data when holdings change (but only once initially)
   useEffect(() => {
@@ -67,6 +87,9 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
     return () => {
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
+      }
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
       }
     };
   }, []);

@@ -12,7 +12,7 @@ export const useDashboardState = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const { user, loading: authLoading } = useAuth();
-  const { portfolios, loading: portfolioLoading, fetchHoldings } = usePortfolio();
+  const { portfolios, loading: portfolioLoading } = usePortfolio();
   const { generateTradeIdeas, loading: aiLoading } = useEdgeFunctions();
   const navigate = useNavigate();
 
@@ -20,13 +20,6 @@ export const useDashboardState = () => {
   const portfolioId = portfolios?.[0]?.id;
   
   const { portfolio: realTimePortfolio, loading: portfolioDataLoading, refreshData, lastUpdated } = useRealTimePortfolio(portfolioId);
-
-  // Fetch holdings when portfolio is available
-  useEffect(() => {
-    if (portfolioId) {
-      fetchHoldings(portfolioId);
-    }
-  }, [portfolioId, fetchHoldings]);
 
   // Redirect to auth if not authenticated
   useEffect(() => {

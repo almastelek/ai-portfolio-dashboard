@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
@@ -13,17 +13,9 @@ interface RealHoldingsListProps {
 }
 
 const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
-  const { holdings, loading, fetchHoldings, deleteHolding } = usePortfolio();
+  const { loading, deleteHolding, fetchHoldings } = usePortfolio();
   const { portfolio: realTimePortfolio, loading: priceLoading, refreshData } = useRealTimePortfolio(portfolioId);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Fetch holdings when component mounts or portfolioId changes
-  useEffect(() => {
-    if (portfolioId) {
-      console.log('Fetching holdings for portfolio:', portfolioId);
-      fetchHoldings(portfolioId);
-    }
-  }, [portfolioId, fetchHoldings]);
 
   const handleDelete = async (holdingId: string) => {
     if (confirm('Are you sure you want to delete this holding?')) {
@@ -53,7 +45,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     }
   };
 
-  // Use real-time portfolio holdings if available, otherwise use basic holdings
+  // Use real-time portfolio holdings if available, otherwise use empty array
   const displayHoldings = realTimePortfolio?.holdings || [];
 
   if (loading) {
