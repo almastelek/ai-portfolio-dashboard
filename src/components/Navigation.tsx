@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ import AddHoldingForm from './AddHoldingForm';
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  portfolioId: string;
+  portfolioId?: string;
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfolioId }) => {
@@ -78,7 +79,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
   };
 
   const handlePortfolioValue = () => {
-    navigate(`/portfolio/${portfolioId}`);
+    if (portfolioId) {
+      navigate(`/portfolio/${portfolioId}`);
+    }
   };
 
   return (
@@ -108,6 +111,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
               variant="outline"
               className="w-full justify-start"
               onClick={handleAddHolding}
+              disabled={!portfolioId}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Holding
@@ -116,6 +120,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
               variant="outline"
               className="w-full justify-start"
               onClick={handlePortfolioValue}
+              disabled={!portfolioId}
             >
               <DollarSign className="h-4 w-4 mr-2" />
               Portfolio Value
@@ -142,7 +147,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
         </div>
       </Card>
 
-      {showAddHolding && (
+      {showAddHolding && portfolioId && (
         <Dialog open={showAddHolding} onOpenChange={setShowAddHolding}>
           <DialogContent>
             <DialogHeader>

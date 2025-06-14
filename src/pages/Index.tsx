@@ -17,6 +17,7 @@ const Index = () => {
     authLoading,
     portfolioLoading,
     portfolios,
+    portfolioId,
     realTimePortfolio,
     portfolioDataLoading,
     refreshData,
@@ -53,7 +54,11 @@ const Index = () => {
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+              <Navigation 
+                activeTab={activeTab} 
+                onTabChange={setActiveTab} 
+                portfolioId={portfolioId || undefined}
+              />
             </div>
           </div>
 
@@ -63,6 +68,7 @@ const Index = () => {
             realTimePortfolio={realTimePortfolio}
             portfolioDataLoading={portfolioDataLoading}
             portfolios={portfolios}
+            portfolioId={portfolioId || undefined}
           />
         </div>
       </div>

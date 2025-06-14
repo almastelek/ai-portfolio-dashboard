@@ -13,9 +13,13 @@ export const useDashboardState = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { user, loading: authLoading } = useAuth();
   const { portfolios, loading: portfolioLoading } = usePortfolio();
-  const { portfolio: realTimePortfolio, loading: portfolioDataLoading, refreshData, lastUpdated } = useRealTimePortfolio(portfolios?.[0]?.id);
   const { generateTradeIdeas, loading: aiLoading } = useEdgeFunctions();
   const navigate = useNavigate();
+
+  // Get the first available portfolio ID
+  const portfolioId = portfolios && portfolios.length > 0 ? portfolios[0].id : null;
+  
+  const { portfolio: realTimePortfolio, loading: portfolioDataLoading, refreshData, lastUpdated } = useRealTimePortfolio(portfolioId || undefined);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -51,6 +55,7 @@ export const useDashboardState = () => {
     authLoading,
     portfolioLoading,
     portfolios,
+    portfolioId,
     realTimePortfolio,
     portfolioDataLoading,
     refreshData,
