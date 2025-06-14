@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePortfolio } from './usePortfolio';
 import { marketDataService, MarketDataResponse } from '@/services/marketDataService';
@@ -41,9 +40,17 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
   const { toast } = useToast();
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
   const isUpdatingRef = useRef(false);
+  const lastUpdateRef = useRef<number>(0);
 
   const fetchMarketData = useCallback(async () => {
     if (!holdings || holdings.length === 0 || isUpdatingRef.current) return;
+
+    // Prevent updates more frequently than every 30 seconds
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 30000) {
+      console.log('Skipping update - too soon since last update');
+      return;
+    }
 
     isUpdatingRef.current = true;
     setLoading(true);
@@ -52,6 +59,7 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
       const tickers = holdings.map(h => h.ticker);
       const data = await marketDataService.getBulkMarketData(tickers);
       setMarketData(data);
+      lastUpdateRef.current = now;
     } catch (error) {
       console.error('Error fetching market data:', error);
       toast({
@@ -78,7 +86,7 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
 
     const enrichedHoldings: EnrichedHolding[] = holdings.map(holding => {
       const marketInfo = marketData.get(holding.ticker);
-      const currentPrice = marketInfo?.currentPrice || Number(holding.avg_cost) * 1.02; // Smaller fallback multiplier
+      const currentPrice = marketInfo?.currentPrice || Number(holding.avg_cost);
       const dayChangePercent = marketInfo?.changePercent || 0;
       
       const shares = Number(holding.shares);
@@ -142,10 +150,10 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
 
   // Fetch market data when holdings change (but only once initially)
   useEffect(() => {
-    if (holdings && holdings.length > 0 && marketData.size === 0) {
+    if (holdings && holdings.length > 0) {
       fetchMarketData();
     }
-  }, [holdings, fetchMarketData, marketData.size]);
+  }, [holdings, fetchMarketData]);
 
   // Recalculate portfolio when market data or holdings change
   useEffect(() => {
@@ -167,7 +175,7 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
     };
   }, [calculatePortfolio]);
 
-  // Auto-refresh market data every 5 minutes (reduced from 30 seconds)
+  // Auto-refresh market data every 5 minutes
   useEffect(() => {
     if (holdings && holdings.length > 0) {
       const interval = setInterval(() => {

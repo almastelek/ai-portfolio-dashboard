@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +22,7 @@ interface RealHoldingsListProps {
 const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
   const { holdings, loading, fetchHoldings, deleteHolding } = usePortfolio();
   const { portfolio: realTimePortfolio, loading: priceLoading, refreshData } = useRealTimePortfolio(portfolioId);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (portfolioId) {
@@ -36,9 +36,14 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     }
   };
 
-  const handleRefresh = () => {
-    refreshData();
-    fetchHoldings(portfolioId);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      await fetchHoldings(portfolioId);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (loading) {
@@ -58,12 +63,12 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
         <div className="flex items-center space-x-4">
           <Button
             onClick={handleRefresh}
-            disabled={priceLoading}
+            disabled={isRefreshing}
             variant="outline"
             size="sm"
             className="flex items-center space-x-2"
           >
-            <RefreshCw className={`h-4 w-4 ${priceLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>Refresh Prices</span>
           </Button>
           <div data-testid="add-holding-button">
@@ -115,7 +120,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <span className="font-bold">{holding.ticker}</span>
-                        {priceLoading && (
+                        {isRefreshing && (
                           <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
                         )}
                       </div>
@@ -162,19 +167,13 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleDelete(holding.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(holding.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );

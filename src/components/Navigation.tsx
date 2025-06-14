@@ -1,141 +1,163 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  BarChart3, 
-  FileText, 
-  Users, 
-  Bell, 
-  Search,
-  Plus,
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  BarChart3,
   TrendingUp,
+  PieChart,
+  Plus,
   DollarSign,
-  PieChart
+  Settings,
+  Bell,
+  User,
+  LogOut
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import AddHoldingForm from './AddHoldingForm';
 
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  portfolioId: string;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
+const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfolioId }) => {
+  const navigate = useNavigate();
+  const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const [nextMarketClose, setNextMarketClose] = useState<string>('');
+  const [showAddHolding, setShowAddHolding] = useState(false);
+
+  useEffect(() => {
+    const checkMarketHours = () => {
+      const now = new Date();
+      const day = now.getDay();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const estHour = (hour + 24 - 5) % 24; // Convert to EST (UTC-5)
+
+      // Check if it's a weekday (1-5)
+      const isWeekday = day >= 1 && day <= 5;
+      
+      // Market hours: 9:30 AM - 4:00 PM EST
+      const isOpen = isWeekday && 
+        ((estHour > 9) || (estHour === 9 && minute >= 30)) && 
+        (estHour < 16);
+
+      setIsMarketOpen(isOpen);
+
+      // Calculate next market close
+      if (isOpen) {
+        setNextMarketClose('4:00 PM EST');
+      } else if (isWeekday && estHour < 9) {
+        setNextMarketClose('9:30 AM EST');
+      } else {
+        // Find next weekday
+        const daysUntilNextWeekday = day === 0 ? 1 : day === 6 ? 2 : 0;
+        setNextMarketClose(`Monday 9:30 AM EST`);
+      }
+    };
+
+    checkMarketHours();
+    const interval = setInterval(checkMarketHours, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'investors', label: 'Investors', icon: Users },
-    { id: 'alerts', label: 'Alerts', icon: Bell },
-    { id: 'research', label: 'Research', icon: Search },
+    { id: 'reports', label: 'Reports', icon: TrendingUp },
+    { id: 'research', label: 'Research', icon: PieChart },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'logout', label: 'Logout', icon: LogOut }
   ];
 
-  const quickActions = [
-    { 
-      label: 'Add Holding', 
-      icon: Plus, 
-      action: () => {
-        // Find and click the existing Add Holding button
-        const addButton = document.querySelector('[data-testid="add-holding-button"]') as HTMLButtonElement;
-        if (addButton) {
-          addButton.click();
-        } else {
-          // Fallback: scroll to holdings section
-          const holdingsSection = document.querySelector('[data-section="holdings"]');
-          if (holdingsSection) {
-            holdingsSection.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      }
-    },
-    { 
-      label: 'View Performance', 
-      icon: TrendingUp, 
-      action: () => onTabChange('reports')
-    },
-    { 
-      label: 'Market Analysis', 
-      icon: PieChart, 
-      action: () => onTabChange('research')
-    },
-    { 
-      label: 'Portfolio Value', 
-      icon: DollarSign, 
-      action: () => {
-        // Scroll to portfolio overview
-        const portfolioSection = document.querySelector('[data-section="portfolio-overview"]');
-        if (portfolioSection) {
-          portfolioSection.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    },
-  ];
+  const handleAddHolding = () => {
+    setShowAddHolding(true);
+  };
+
+  const handlePortfolioValue = () => {
+    navigate(`/portfolio/${portfolioId}`);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Navigation Menu */}
-      <Card className="financial-card">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Navigation</h3>
-          <nav className="space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  className={`flex items-center space-x-3 w-full px-3 py-2 rounded-lg text-left transition-colors ${
-                    activeTab === item.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </Card>
+      <nav className="space-y-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id ? 'secondary' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => onTabChange(item.id)}
+            >
+              <Icon className="h-4 w-4 mr-2" />
+              {item.label}
+            </Button>
+          );
+        })}
+      </nav>
 
-      {/* Quick Actions */}
       <Card className="financial-card">
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="space-y-2">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  onClick={action.action}
-                  className="flex items-center space-x-3 w-full justify-start px-3 py-2 h-auto"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{action.label}</span>
-                </Button>
-              );
-            })}
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={handleAddHolding}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Holding
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={handlePortfolioValue}
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Portfolio Value
+            </Button>
           </div>
         </div>
       </Card>
 
-      {/* Market Status */}
       <Card className="financial-card">
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Market Status</h3>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Status</span>
-              <span className="text-sm font-medium text-profit">Open</span>
+              <span className={`text-sm font-medium ${isMarketOpen ? 'text-profit' : 'text-loss'}`}>
+                {isMarketOpen ? 'Open' : 'Closed'}
+              </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Next Close</span>
-              <span className="text-sm">4:00 PM EST</span>
+              <span className="text-sm text-muted-foreground">Next {isMarketOpen ? 'Close' : 'Open'}</span>
+              <span className="text-sm">{nextMarketClose}</span>
             </div>
           </div>
         </div>
       </Card>
+
+      {showAddHolding && (
+        <Dialog open={showAddHolding} onOpenChange={setShowAddHolding}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Holding</DialogTitle>
+            </DialogHeader>
+            <AddHoldingForm
+              portfolioId={portfolioId}
+              onSuccess={() => {
+                setShowAddHolding(false);
+                window.location.reload();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
