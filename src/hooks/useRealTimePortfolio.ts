@@ -1,147 +1,21 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePortfolio } from './usePortfolio';
-import { marketDataService, MarketDataResponse } from '@/services/marketDataService';
-import { useToast } from './use-toast';
-
-interface EnrichedHolding {
-  id: string;
-  ticker: string;
-  companyName: string;
-  shares: number;
-  avgCost: number;
-  currentPrice: number;
-  marketValue: number;
-  unrealizedPnL: number;
-  unrealizedPnLPercent: number;
-  dayChange: number;
-  dayChangePercent: number;
-  sector: string;
-  weight: number;
-}
-
-interface RealTimePortfolio {
-  id: string;
-  name: string;
-  totalValue: number;
-  totalCost: number;
-  totalPnL: number;
-  totalPnLPercent: number;
-  dayChange: number;
-  dayChangePercent: number;
-  holdings: EnrichedHolding[];
-  lastUpdated: Date;
-}
+import { useMarketData } from './useMarketData';
+import { calculatePortfolioTotals } from '../utils/portfolioCalculations';
+import { RealTimePortfolio } from '../types/realTimePortfolio';
 
 export const useRealTimePortfolio = (portfolioId?: string) => {
   const [portfolio, setPortfolio] = useState<RealTimePortfolio | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [marketData, setMarketData] = useState<Map<string, MarketDataResponse>>(new Map());
   const { portfolios, holdings, fetchHoldings } = usePortfolio();
-  const { toast } = useToast();
+  const { marketData, loading, fetchMarketData } = useMarketData();
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
-  const isUpdatingRef = useRef(false);
-  const lastUpdateRef = useRef<number>(0);
-
-  const fetchMarketData = useCallback(async () => {
-    if (!holdings || holdings.length === 0 || isUpdatingRef.current) return;
-
-    // Prevent updates more frequently than every 30 seconds
-    const now = Date.now();
-    if (now - lastUpdateRef.current < 30000) {
-      console.log('Skipping update - too soon since last update');
-      return;
-    }
-
-    isUpdatingRef.current = true;
-    setLoading(true);
-    
-    try {
-      const tickers = holdings.map(h => h.ticker);
-      const data = await marketDataService.getBulkMarketData(tickers);
-      setMarketData(data);
-      lastUpdateRef.current = now;
-    } catch (error) {
-      console.error('Error fetching market data:', error);
-      toast({
-        title: "Warning",
-        description: "Unable to fetch live market data. Using cached values.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      isUpdatingRef.current = false;
-    }
-  }, [holdings, toast]);
 
   const calculatePortfolio = useCallback((): RealTimePortfolio | null => {
-    if (!holdings || holdings.length === 0 || !portfolios || portfolios.length === 0) {
-      return null;
-    }
-
-    const currentPortfolio = portfolios.find(p => p.id === portfolioId) || portfolios[0];
-    
-    let totalValue = 0;
-    let totalCost = 0;
-    let totalDayChange = 0;
-
-    const enrichedHoldings: EnrichedHolding[] = holdings.map(holding => {
-      const marketInfo = marketData.get(holding.ticker);
-      const currentPrice = marketInfo?.currentPrice || Number(holding.avg_cost);
-      const dayChangePercent = marketInfo?.changePercent || 0;
-      
-      const shares = Number(holding.shares);
-      const avgCost = Number(holding.avg_cost);
-      const marketValue = shares * currentPrice;
-      const costBasis = shares * avgCost;
-      const unrealizedPnL = marketValue - costBasis;
-      const unrealizedPnLPercent = costBasis > 0 ? (unrealizedPnL / costBasis) * 100 : 0;
-      const dayChange = marketValue * (dayChangePercent / 100);
-
-      totalValue += marketValue;
-      totalCost += costBasis;
-      totalDayChange += dayChange;
-
-      return {
-        id: holding.id,
-        ticker: holding.ticker,
-        companyName: holding.company_name,
-        shares,
-        avgCost,
-        currentPrice,
-        marketValue,
-        unrealizedPnL,
-        unrealizedPnLPercent,
-        dayChange,
-        dayChangePercent,
-        sector: holding.sector || 'Unknown',
-        weight: 0 // Will be calculated after we have totalValue
-      };
-    });
-
-    // Calculate weights
-    enrichedHoldings.forEach(holding => {
-      holding.weight = totalValue > 0 ? (holding.marketValue / totalValue) * 100 : 0;
-    });
-
-    const totalPnL = totalValue - totalCost;
-    const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
-    const dayChangePercent = totalValue > 0 ? (totalDayChange / totalValue) * 100 : 0;
-
-    return {
-      id: currentPortfolio.id,
-      name: currentPortfolio.name,
-      totalValue,
-      totalCost,
-      totalPnL,
-      totalPnLPercent,
-      dayChange: totalDayChange,
-      dayChangePercent,
-      holdings: enrichedHoldings,
-      lastUpdated: new Date()
-    };
+    return calculatePortfolioTotals(holdings, marketData, portfolios, portfolioId);
   }, [holdings, marketData, portfolios, portfolioId]);
 
-  // Fetch holdings when portfolioId changes
+  // Fetch holdings when portfolio is available
   useEffect(() => {
     if (portfolioId) {
       fetchHoldings(portfolioId);
@@ -151,7 +25,8 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
   // Fetch market data when holdings change (but only once initially)
   useEffect(() => {
     if (holdings && holdings.length > 0) {
-      fetchMarketData();
+      const tickers = holdings.map(h => h.ticker);
+      fetchMarketData(tickers);
     }
   }, [holdings, fetchMarketData]);
 
@@ -179,7 +54,8 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
   useEffect(() => {
     if (holdings && holdings.length > 0) {
       const interval = setInterval(() => {
-        fetchMarketData();
+        const tickers = holdings.map(h => h.ticker);
+        fetchMarketData(tickers);
       }, 300000); // 5 minutes
 
       return () => clearInterval(interval);
@@ -195,10 +71,17 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
     };
   }, []);
 
+  const refreshData = useCallback(async () => {
+    if (holdings && holdings.length > 0) {
+      const tickers = holdings.map(h => h.ticker);
+      await fetchMarketData(tickers);
+    }
+  }, [holdings, fetchMarketData]);
+
   return {
     portfolio,
     loading,
-    refreshData: fetchMarketData,
+    refreshData,
     lastUpdated: portfolio?.lastUpdated
   };
 };
