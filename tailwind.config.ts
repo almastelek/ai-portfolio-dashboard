@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,28 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Financial dashboard specific colors
+				profit: {
+					DEFAULT: '#22c55e',
+					light: '#86efac',
+					dark: '#15803d'
+				},
+				loss: {
+					DEFAULT: '#ef4444',
+					light: '#fca5a5',
+					dark: '#dc2626'
+				},
+				neutral: {
+					DEFAULT: '#6b7280',
+					light: '#d1d5db',
+					dark: '#374151'
+				},
+				financial: {
+					blue: '#1e40af',
+					indigo: '#4338ca',
+					purple: '#7c3aed',
+					teal: '#0891b2'
 				}
 			},
 			borderRadius: {
@@ -84,11 +107,56 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'slide-up': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(20px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'pulse-profit': {
+					'0%, 100%': {
+						boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.4)'
+					},
+					'50%': {
+						boxShadow: '0 0 0 8px rgba(34, 197, 94, 0)'
+					}
+				},
+				'pulse-loss': {
+					'0%, 100%': {
+						boxShadow: '0 0 0 0 rgba(239, 68, 68, 0.4)'
+					},
+					'50%': {
+						boxShadow: '0 0 0 8px rgba(239, 68, 68, 0)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'slide-up': 'slide-up 0.4s ease-out',
+				'pulse-profit': 'pulse-profit 2s infinite',
+				'pulse-loss': 'pulse-loss 2s infinite'
+			},
+			backgroundImage: {
+				'gradient-financial': 'linear-gradient(135deg, #1e40af 0%, #4338ca 50%, #7c3aed 100%)',
+				'gradient-profit': 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+				'gradient-loss': 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
 			}
 		}
 	},
