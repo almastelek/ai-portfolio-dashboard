@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockPortfolio, mockMarketSummary } from '../data/mockData';
+import { mockMarketSummary } from '../data/mockData';
 import { Holding } from '../types/portfolio';
 import { useAuth } from '../hooks/useAuth';
 import { usePortfolio } from '../hooks/usePortfolio';
+import { useRealTimePortfolio } from '../hooks/useRealTimePortfolio';
 import { useEdgeFunctions } from '../hooks/useEdgeFunctions';
 import MarketSummary from '../components/MarketSummary';
 import PortfolioOverview from '../components/PortfolioOverview';
@@ -18,14 +19,15 @@ import SuperInvestorTracker from '../components/SuperInvestorTracker';
 import AlertsManager from '../components/AlertsManager';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Sparkles, TrendingUp } from 'lucide-react';
+import { Sparkles, TrendingUp, RefreshCw } from 'lucide-react';
 
 const Index = () => {
   const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const { user, loading: authLoading } = useAuth();
-  const { portfolios, holdings, loading: portfolioLoading, fetchHoldings } = usePortfolio();
+  const { portfolios, loading: portfolioLoading } = usePortfolio();
+  const { portfolio: realTimePortfolio, loading: portfolioDataLoading, refreshData, lastUpdated } = useRealTimePortfolio(portfolios?.[0]?.id);
   const { generateTradeIdeas, loading: aiLoading } = useEdgeFunctions();
   const navigate = useNavigate();
 
@@ -35,13 +37,6 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
-
-  // Fetch holdings for the first portfolio
-  useEffect(() => {
-    if (portfolios && portfolios.length > 0) {
-      fetchHoldings(portfolios[0].id);
-    }
-  }, [portfolios, fetchHoldings]);
 
   const handleHoldingClick = (holding: Holding) => {
     setSelectedHolding(holding);
@@ -61,78 +56,6 @@ const Index = () => {
     }
   };
 
-  // Calculate real portfolio metrics from holdings
-  const calculatePortfolioMetrics = () => {
-    if (!holdings || holdings.length === 0) {
-      return mockPortfolio; // Fallback to mock data if no holdings
-    }
-
-    // For now, we'll use mock prices since we don't have real-time data
-    // In a real app, you'd fetch current prices from an API
-    const mockPrices = {
-      'AAPL': 150.00,
-      'GOOGL': 2800.00,
-      'MSFT': 300.00,
-      'TSLA': 800.00,
-      'NVDA': 900.00
-    };
-
-    let totalValue = 0;
-    let totalCost = 0;
-    let totalDayChange = 0;
-
-    const enrichedHoldings = holdings.map(holding => {
-      const currentPrice = mockPrices[holding.ticker as keyof typeof mockPrices] || holding.avg_cost * 1.05;
-      const marketValue = Number(holding.shares) * currentPrice;
-      const costBasis = Number(holding.shares) * Number(holding.avg_cost);
-      const unrealizedPnL = marketValue - costBasis;
-      const unrealizedPnLPercent = (unrealizedPnL / costBasis) * 100;
-      const dayChange = marketValue * 0.012; // Mock 1.2% daily change
-      const dayChangePercent = 1.2;
-
-      totalValue += marketValue;
-      totalCost += costBasis;
-      totalDayChange += dayChange;
-
-      return {
-        id: holding.id,
-        ticker: holding.ticker,
-        companyName: holding.company_name,
-        shares: Number(holding.shares),
-        avgCost: Number(holding.avg_cost),
-        currentPrice,
-        marketValue,
-        unrealizedPnL,
-        unrealizedPnLPercent,
-        dayChange,
-        dayChangePercent,
-        sector: holding.sector || 'Technology',
-        weight: 0 // Will be calculated after we have totalValue
-      };
-    });
-
-    // Calculate weights
-    enrichedHoldings.forEach(holding => {
-      holding.weight = (holding.marketValue / totalValue) * 100;
-    });
-
-    const totalPnL = totalValue - totalCost;
-    const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
-    const dayChangePercent = totalValue > 0 ? (totalDayChange / totalValue) * 100 : 0;
-
-    return {
-      id: portfolios?.[0]?.id || 'default',
-      name: portfolios?.[0]?.name || 'My Portfolio',
-      totalValue,
-      totalCost,
-      totalPnL,
-      totalPnLPercent,
-      dayChange: totalDayChange,
-      dayChangePercent,
-      holdings: enrichedHoldings
-    };
-  };
-
   // Show loading state while checking authentication
   if (authLoading || portfolioLoading) {
     return (
@@ -149,8 +72,6 @@ const Index = () => {
   if (!user) {
     return null;
   }
-
-  const portfolioData = calculatePortfolioMetrics();
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,8 +96,18 @@ const Index = () => {
                 <Sparkles className="h-4 w-4" />
                 <span>{aiLoading ? 'Generating...' : 'AI Trade Ideas'}</span>
               </Button>
+              <Button
+                onClick={refreshData}
+                disabled={portfolioDataLoading}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${portfolioDataLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </Button>
               <div className="text-sm text-muted-foreground">
-                Last updated: {new Date().toLocaleTimeString()}
+                {lastUpdated ? `Updated: ${lastUpdated.toLocaleTimeString()}` : 'Loading...'}
               </div>
               <UserProfile />
             </div>
@@ -213,26 +144,30 @@ const Index = () => {
                 </div>
 
                 {/* Portfolio Overview */}
-                <div className="animate-slide-up">
-                  <h2 className="text-xl font-semibold mb-4">Portfolio Performance</h2>
-                  <PortfolioOverview portfolio={portfolioData} />
-                </div>
+                {realTimePortfolio && (
+                  <div className="animate-slide-up">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold">Portfolio Performance</h2>
+                      {portfolioDataLoading && (
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>Updating prices...</span>
+                        </div>
+                      )}
+                    </div>
+                    <PortfolioOverview portfolio={realTimePortfolio} />
+                  </div>
+                )}
 
                 {/* Holdings */}
                 <div className="animate-slide-up">
                   {portfolios && portfolios.length > 0 ? (
                     <RealHoldingsList portfolioId={portfolios[0].id} />
                   ) : (
-                    <div className="space-y-4">
-                      <div className="text-center p-4 bg-muted/20 rounded-lg">
-                        <p className="text-muted-foreground">
-                          No portfolio found. A default portfolio should have been created automatically.
-                        </p>
-                      </div>
-                      <HoldingsList 
-                        holdings={mockPortfolio.holdings} 
-                        onHoldingClick={handleHoldingClick}
-                      />
+                    <div className="text-center p-4 bg-muted/20 rounded-lg">
+                      <p className="text-muted-foreground">
+                        No portfolio found. Please add some holdings to get started.
+                      </p>
                     </div>
                   )}
                 </div>

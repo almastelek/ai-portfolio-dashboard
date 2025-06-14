@@ -1,10 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Edit, Trash2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
+import { useRealTimePortfolio } from '@/hooks/useRealTimePortfolio';
 import AddHoldingForm from './AddHoldingForm';
 import {
   Table,
@@ -21,6 +22,7 @@ interface RealHoldingsListProps {
 
 const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
   const { holdings, loading, fetchHoldings, deleteHolding } = usePortfolio();
+  const { portfolio: realTimePortfolio, loading: priceLoading, refreshData } = useRealTimePortfolio(portfolioId);
 
   useEffect(() => {
     if (portfolioId) {
@@ -32,6 +34,11 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     if (confirm('Are you sure you want to delete this holding?')) {
       await deleteHolding(holdingId);
     }
+  };
+
+  const handleRefresh = () => {
+    refreshData();
+    fetchHoldings(portfolioId);
   };
 
   if (loading) {
@@ -48,10 +55,22 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Your Holdings</h2>
-        <AddHoldingForm 
-          portfolioId={portfolioId} 
-          onSuccess={() => fetchHoldings(portfolioId)}
-        />
+        <div className="flex items-center space-x-4">
+          <Button
+            onClick={handleRefresh}
+            disabled={priceLoading}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${priceLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh Prices</span>
+          </Button>
+          <AddHoldingForm 
+            portfolioId={portfolioId} 
+            onSuccess={() => fetchHoldings(portfolioId)}
+          />
+        </div>
       </div>
 
       {holdings.length === 0 ? (
@@ -77,36 +96,62 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
                 <TableHead>Company</TableHead>
                 <TableHead className="text-right">Shares</TableHead>
                 <TableHead className="text-right">Avg Cost</TableHead>
+                <TableHead className="text-right">Current Price</TableHead>
                 <TableHead className="text-right">Market Value</TableHead>
+                <TableHead className="text-right">P&L</TableHead>
                 <TableHead>Sector</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {holdings.map((holding) => {
-                const marketValue = holding.shares * holding.avg_cost; // Using avg_cost as current price for now
-                const isPositive = true; // Placeholder for actual P&L calculation
+              {realTimePortfolio?.holdings.map((holding) => {
+                const isPositive = holding.unrealizedPnLPercent >= 0;
+                const isDayPositive = holding.dayChangePercent >= 0;
                 
                 return (
                   <TableRow key={holding.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <span className="font-bold">{holding.ticker}</span>
+                        {priceLoading && (
+                          <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell>{holding.company_name}</TableCell>
+                    <TableCell>{holding.companyName}</TableCell>
                     <TableCell className="text-right">{holding.shares.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">${holding.avg_cost.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">${holding.avgCost.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="space-y-1">
+                        <div className="font-semibold">${holding.currentPrice.toFixed(2)}</div>
+                        <div className={`text-xs ${isDayPositive ? 'text-profit' : 'text-loss'}`}>
+                          {isDayPositive ? '+' : ''}{holding.dayChangePercent.toFixed(2)}%
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-1">
                         <span className="font-semibold">
-                          ${marketValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          ${holding.marketValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
-                        {isPositive ? (
+                        {isDayPositive ? (
                           <TrendingUp className="h-4 w-4 text-profit" />
                         ) : (
                           <TrendingDown className="h-4 w-4 text-loss" />
                         )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="space-y-1">
+                        <div className={`font-semibold ${isPositive ? 'text-profit' : 'text-loss'}`}>
+                          ${holding.unrealizedPnL.toLocaleString('en-US', { 
+                            minimumFractionDigits: 2,
+                            signDisplay: 'always'
+                          })}
+                        </div>
+                        <div className={`text-xs ${isPositive ? 'text-profit' : 'text-loss'}`}>
+                          ({isPositive ? '+' : ''}{holding.unrealizedPnLPercent.toFixed(2)}%)
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
