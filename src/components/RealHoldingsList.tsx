@@ -20,7 +20,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
   const handleDelete = async (holdingId: string) => {
     if (confirm('Are you sure you want to delete this holding?')) {
       await deleteHolding(holdingId);
-      // Refresh holdings after deletion
+      // Refresh holdings after deletion 
       if (portfolioId) {
         fetchHoldings(portfolioId);
       }
