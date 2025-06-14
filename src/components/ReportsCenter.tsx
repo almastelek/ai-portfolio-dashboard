@@ -6,8 +6,32 @@ import { Badge } from '@/components/ui/badge';
 import { useReports } from '@/hooks/useReports';
 import { FileText, TrendingUp, Clock, Users } from 'lucide-react';
 
+interface ReportSection {
+  title: string;
+  content?: string;
+  articles?: Array<{
+    headline: string;
+    source: string;
+    url?: string;
+  }>;
+  holdings_count?: number;
+  watchlist_alerts?: any[];
+  companies?: string[];
+  daily_change?: string;
+  percent_change?: string;
+  winners?: string[];
+  losers?: string[];
+}
+
+interface Report {
+  type: string;
+  title: string;
+  generated_at: string;
+  sections: Record<string, ReportSection>;
+}
+
 const ReportsCenter = () => {
-  const [activeReport, setActiveReport] = useState(null);
+  const [activeReport, setActiveReport] = useState<Report | null>(null);
   const { loading, generateReport } = useReports();
 
   const handleGenerateReport = async (type: 'morning' | 'evening' | 'weekly') => {
