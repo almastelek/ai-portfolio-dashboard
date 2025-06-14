@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useReports } from '@/hooks/useReports';
-import { FileText, TrendingUp, Clock, Users, ExternalLink } from 'lucide-react';
+import { FileText, TrendingUp, Clock, Users, ExternalLink, BarChart3 } from 'lucide-react';
 
 interface ReportSection {
   title: string;
@@ -15,12 +15,19 @@ interface ReportSection {
     url?: string;
   }>;
   holdings_count?: number;
-  watchlist_alerts?: any[];
+  tickers?: string;
+  top_sectors?: string[];
+  avg_position_size?: string;
   companies?: string[];
   daily_change?: string;
   percent_change?: string;
   winners?: string[];
   losers?: string[];
+  your_sectors?: string[];
+  total_value?: string;
+  sectors?: number;
+  trending_sectors?: string[];
+  events?: string[];
 }
 
 interface Report {
@@ -64,6 +71,38 @@ const ReportsCenter = () => {
           </div>
         )}
 
+        {section.tickers && (
+          <div>
+            <span className="text-sm font-medium mb-2 block">Tickers:</span>
+            <p className="text-sm text-muted-foreground">{section.tickers}</p>
+          </div>
+        )}
+
+        {section.top_sectors && section.top_sectors.length > 0 && (
+          <div>
+            <span className="text-sm font-medium mb-2 block">Top Sectors:</span>
+            <div className="flex flex-wrap gap-2">
+              {section.top_sectors.map((sector, idx) => (
+                <Badge key={idx} variant="outline">{sector}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {section.avg_position_size && (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium">Avg Position Size:</span>
+            <span className="text-sm font-semibold">{section.avg_position_size}</span>
+          </div>
+        )}
+
+        {section.total_value && (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium">Total Value:</span>
+            <span className="text-sm font-semibold text-green-600">{section.total_value}</span>
+          </div>
+        )}
+
         {section.daily_change && section.percent_change && (
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -87,7 +126,7 @@ const ReportsCenter = () => {
 
         {section.companies && section.companies.length > 0 && (
           <div>
-            <span className="text-sm font-medium mb-2 block">Companies:</span>
+            <span className="text-sm font-medium mb-2 block">Companies to Watch:</span>
             <div className="flex flex-wrap gap-2">
               {section.companies.map((company, idx) => (
                 <Badge key={idx} variant="outline">{company}</Badge>
@@ -122,6 +161,46 @@ const ReportsCenter = () => {
           </div>
         )}
 
+        {section.your_sectors && section.your_sectors.length > 0 && (
+          <div>
+            <span className="text-sm font-medium mb-2 block">Your Sectors:</span>
+            <div className="flex flex-wrap gap-2">
+              {section.your_sectors.map((sector, idx) => (
+                <Badge key={idx} variant="secondary" className="bg-blue-100 text-blue-800">
+                  {sector}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {section.trending_sectors && section.trending_sectors.length > 0 && (
+          <div>
+            <span className="text-sm font-medium mb-2 block">Trending Sectors:</span>
+            <div className="flex flex-wrap gap-2">
+              {section.trending_sectors.map((sector, idx) => (
+                <Badge key={idx} variant="secondary" className="bg-purple-100 text-purple-800">
+                  {sector}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {section.events && section.events.length > 0 && (
+          <div>
+            <span className="text-sm font-medium mb-2 block">Upcoming Events:</span>
+            <ul className="space-y-1">
+              {section.events.map((event, idx) => (
+                <li key={idx} className="text-sm text-muted-foreground flex items-center">
+                  <Clock className="h-3 w-3 mr-2" />
+                  {event}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {section.articles && section.articles.length > 0 && (
           <div>
             <span className="text-sm font-medium mb-2 block">Top Headlines:</span>
@@ -152,7 +231,7 @@ const ReportsCenter = () => {
         <h2 className="text-2xl font-bold">Reports Center</h2>
         <Badge variant="secondary">
           <Clock className="h-4 w-4 mr-1" />
-          Auto-generated daily
+          Real-time data
         </Badge>
       </div>
 
@@ -162,7 +241,7 @@ const ReportsCenter = () => {
             <TrendingUp className="h-8 w-8 text-blue-500" />
             <div>
               <h3 className="font-semibold">Morning Brief</h3>
-              <p className="text-sm text-muted-foreground">Pre-market overview</p>
+              <p className="text-sm text-muted-foreground">Pre-market overview & portfolio status</p>
             </div>
           </div>
           <Button 
@@ -179,7 +258,7 @@ const ReportsCenter = () => {
             <FileText className="h-8 w-8 text-green-500" />
             <div>
               <h3 className="font-semibold">Evening Recap</h3>
-              <p className="text-sm text-muted-foreground">Market close summary</p>
+              <p className="text-sm text-muted-foreground">Daily performance & market close</p>
             </div>
           </div>
           <Button 
@@ -193,7 +272,7 @@ const ReportsCenter = () => {
 
         <Card className="financial-card">
           <div className="flex items-center space-x-3 mb-4">
-            <Users className="h-8 w-8 text-purple-500" />
+            <BarChart3 className="h-8 w-8 text-purple-500" />
             <div>
               <h3 className="font-semibold">Weekly Digest</h3>
               <p className="text-sm text-muted-foreground">Comprehensive weekly analysis</p>
@@ -240,7 +319,7 @@ const ReportsCenter = () => {
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Reports Generated Yet</h3>
             <p className="text-muted-foreground">
-              Generate your first report using one of the buttons above to get started with AI-powered market analysis.
+              Generate your first report using one of the buttons above to get AI-powered analysis of your portfolio and market conditions.
             </p>
           </div>
         </Card>
