@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePortfolio } from './usePortfolio';
 import { marketDataService, MarketDataResponse } from '@/services/marketDataService';
 import { useToast } from './use-toast';
@@ -39,11 +39,15 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
   const [marketData, setMarketData] = useState<Map<string, MarketDataResponse>>(new Map());
   const { portfolios, holdings, fetchHoldings } = usePortfolio();
   const { toast } = useToast();
+  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  const isUpdatingRef = useRef(false);
 
-  const fetchMarketData = async () => {
-    if (!holdings || holdings.length === 0) return;
+  const fetchMarketData = useCallback(async () => {
+    if (!holdings || holdings.length === 0 || isUpdatingRef.current) return;
 
+    isUpdatingRef.current = true;
     setLoading(true);
+    
     try {
       const tickers = holdings.map(h => h.ticker);
       const data = await marketDataService.getBulkMarketData(tickers);
@@ -57,10 +61,11 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
       });
     } finally {
       setLoading(false);
+      isUpdatingRef.current = false;
     }
-  };
+  }, [holdings, toast]);
 
-  const calculatePortfolio = (): RealTimePortfolio | null => {
+  const calculatePortfolio = useCallback((): RealTimePortfolio | null => {
     if (!holdings || holdings.length === 0 || !portfolios || portfolios.length === 0) {
       return null;
     }
@@ -73,7 +78,7 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
 
     const enrichedHoldings: EnrichedHolding[] = holdings.map(holding => {
       const marketInfo = marketData.get(holding.ticker);
-      const currentPrice = marketInfo?.currentPrice || Number(holding.avg_cost) * 1.05; // Fallback
+      const currentPrice = marketInfo?.currentPrice || Number(holding.avg_cost) * 1.02; // Smaller fallback multiplier
       const dayChangePercent = marketInfo?.changePercent || 0;
       
       const shares = Number(holding.shares);
@@ -126,7 +131,7 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
       holdings: enrichedHoldings,
       lastUpdated: new Date()
     };
-  };
+  }, [holdings, marketData, portfolios, portfolioId]);
 
   // Fetch holdings when portfolioId changes
   useEffect(() => {
@@ -135,29 +140,52 @@ export const useRealTimePortfolio = (portfolioId?: string) => {
     }
   }, [portfolioId, fetchHoldings]);
 
-  // Fetch market data when holdings change
+  // Fetch market data when holdings change (but only once initially)
   useEffect(() => {
-    if (holdings && holdings.length > 0) {
+    if (holdings && holdings.length > 0 && marketData.size === 0) {
       fetchMarketData();
     }
-  }, [holdings]);
+  }, [holdings, fetchMarketData, marketData.size]);
 
   // Recalculate portfolio when market data or holdings change
   useEffect(() => {
-    const calculatedPortfolio = calculatePortfolio();
-    setPortfolio(calculatedPortfolio);
-  }, [holdings, marketData, portfolios, portfolioId]);
+    // Clear any pending updates to prevent rapid recalculations
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
 
-  // Auto-refresh market data every 30 seconds
+    // Debounce the portfolio calculation
+    updateTimeoutRef.current = setTimeout(() => {
+      const calculatedPortfolio = calculatePortfolio();
+      setPortfolio(calculatedPortfolio);
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, [calculatePortfolio]);
+
+  // Auto-refresh market data every 5 minutes (reduced from 30 seconds)
   useEffect(() => {
     if (holdings && holdings.length > 0) {
       const interval = setInterval(() => {
         fetchMarketData();
-      }, 30000); // 30 seconds
+      }, 300000); // 5 minutes
 
       return () => clearInterval(interval);
     }
-  }, [holdings]);
+  }, [holdings, fetchMarketData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     portfolio,

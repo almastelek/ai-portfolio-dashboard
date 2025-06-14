@@ -1,11 +1,22 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Mock data for common stocks to make it more realistic
+const stockData: Record<string, any> = {
+  'GOOGL': { basePrice: 138.50, name: 'Alphabet Inc.' },
+  'AAPL': { basePrice: 195.50, name: 'Apple Inc.' },
+  'MSFT': { basePrice: 415.25, name: 'Microsoft Corporation' },
+  'AMZN': { basePrice: 155.75, name: 'Amazon.com Inc.' },
+  'TSLA': { basePrice: 248.50, name: 'Tesla Inc.' },
+  'NVDA': { basePrice: 875.25, name: 'NVIDIA Corporation' },
+  'META': { basePrice: 485.75, name: 'Meta Platforms Inc.' },
+  'NFLX': { basePrice: 485.25, name: 'Netflix Inc.' }
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,17 +30,27 @@ serve(async (req) => {
       throw new Error('Ticker symbol is required')
     }
 
-    // Mock market data (in production, you'd call a real API like Alpha Vantage, Yahoo Finance, etc.)
+    const upperTicker = ticker.toUpperCase();
+    const stockInfo = stockData[upperTicker];
+    const basePrice = stockInfo?.basePrice || 150.00; // Default for unknown stocks
+    
+    // Generate realistic but stable price movements
+    const priceVariation = (Math.sin(Date.now() / 1000000) * 0.02); // Small variation based on time
+    const currentPrice = basePrice * (1 + priceVariation);
+    const yesterdayPrice = basePrice * (1 + (Math.sin((Date.now() - 86400000) / 1000000) * 0.02));
+    const change = currentPrice - yesterdayPrice;
+    const changePercent = (change / yesterdayPrice) * 100;
+
     const mockData = {
-      ticker: ticker.toUpperCase(),
-      currentPrice: Math.random() * 300 + 50, // Random price between 50-350
-      change: Math.random() * 20 - 10, // Random change between -10 and +10
-      changePercent: Math.random() * 10 - 5, // Random percent change
-      volume: Math.floor(Math.random() * 10000000),
-      marketCap: Math.floor(Math.random() * 1000000000000),
-      pe: Math.random() * 50 + 5,
-      high52Week: Math.random() * 400 + 100,
-      low52Week: Math.random() * 100 + 20,
+      ticker: upperTicker,
+      currentPrice: Math.round(currentPrice * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent: Math.round(changePercent * 100) / 100,
+      volume: Math.floor(Math.random() * 5000000) + 1000000,
+      marketCap: Math.floor(basePrice * 1000000000),
+      pe: Math.round((15 + Math.random() * 20) * 100) / 100,
+      high52Week: Math.round(basePrice * 1.3 * 100) / 100,
+      low52Week: Math.round(basePrice * 0.7 * 100) / 100,
       timestamp: new Date().toISOString()
     }
 
