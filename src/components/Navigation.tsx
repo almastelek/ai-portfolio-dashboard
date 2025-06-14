@@ -19,7 +19,7 @@ import AddHoldingForm from './AddHoldingForm';
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  portfolioId: string;
+  portfolioId?: string;
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfolioId }) => {
@@ -66,11 +66,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'reports', label: 'Reports', icon: TrendingUp },
+    { id: 'investors', label: 'Investors', icon: PieChart },
+    { id: 'alerts', label: 'Alerts', icon: Bell },
     { id: 'research', label: 'Research', icon: PieChart },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'logout', label: 'Logout', icon: LogOut }
   ];
 
   const handleAddHolding = () => {
@@ -78,7 +76,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
   };
 
   const handlePortfolioValue = () => {
-    navigate(`/portfolio/${portfolioId}`);
+    if (portfolioId) {
+      navigate(`/portfolio/${portfolioId}`);
+    }
   };
 
   return (
@@ -108,6 +108,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
               variant="outline"
               className="w-full justify-start"
               onClick={handleAddHolding}
+              disabled={!portfolioId}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Holding
@@ -116,6 +117,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
               variant="outline"
               className="w-full justify-start"
               onClick={handlePortfolioValue}
+              disabled={!portfolioId}
             >
               <DollarSign className="h-4 w-4 mr-2" />
               Portfolio Value
@@ -142,7 +144,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, portfol
         </div>
       </Card>
 
-      {showAddHolding && (
+      {showAddHolding && portfolioId && (
         <Dialog open={showAddHolding} onOpenChange={setShowAddHolding}>
           <DialogContent>
             <DialogHeader>

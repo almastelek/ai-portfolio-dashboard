@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2, RefreshCw } from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { useRealTimePortfolio } from '@/hooks/useRealTimePortfolio';
 import AddHoldingForm from './AddHoldingForm';
@@ -24,15 +25,21 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
   const { portfolio: realTimePortfolio, loading: priceLoading, refreshData } = useRealTimePortfolio(portfolioId);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Fetch holdings when component mounts or portfolioId changes
   useEffect(() => {
     if (portfolioId) {
+      console.log('Fetching holdings for portfolio:', portfolioId);
       fetchHoldings(portfolioId);
     }
-  }, [portfolioId]);
+  }, [portfolioId, fetchHoldings]);
 
   const handleDelete = async (holdingId: string) => {
     if (confirm('Are you sure you want to delete this holding?')) {
       await deleteHolding(holdingId);
+      // Refresh holdings after deletion
+      if (portfolioId) {
+        fetchHoldings(portfolioId);
+      }
     }
   };
 
@@ -40,16 +47,28 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     setIsRefreshing(true);
     try {
       await refreshData();
-      await fetchHoldings(portfolioId);
+      if (portfolioId) {
+        await fetchHoldings(portfolioId);
+      }
     } finally {
       setIsRefreshing(false);
     }
   };
 
+  const handleHoldingAdded = () => {
+    if (portfolioId) {
+      fetchHoldings(portfolioId);
+    }
+  };
+
+  // Use real-time portfolio holdings if available, otherwise use basic holdings
+  const displayHoldings = realTimePortfolio?.holdings || [];
+
   if (loading) {
     return (
       <Card className="financial-card">
         <div className="flex items-center justify-center p-8">
+          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
           <div className="text-muted-foreground">Loading holdings...</div>
         </div>
       </Card>
@@ -74,13 +93,13 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
           <div data-testid="add-holding-button">
             <AddHoldingForm 
               portfolioId={portfolioId} 
-              onSuccess={() => fetchHoldings(portfolioId)}
+              onSuccess={handleHoldingAdded}
             />
           </div>
         </div>
       </div>
 
-      {holdings.length === 0 ? (
+      {displayHoldings.length === 0 ? (
         <Card className="financial-card">
           <div className="text-center p-8 space-y-4">
             <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -90,7 +109,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
             </div>
             <AddHoldingForm 
               portfolioId={portfolioId} 
-              onSuccess={() => fetchHoldings(portfolioId)}
+              onSuccess={handleHoldingAdded}
             />
           </div>
         </Card>
@@ -111,7 +130,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {realTimePortfolio?.holdings.map((holding) => {
+              {displayHoldings.map((holding) => {
                 const isPositive = holding.unrealizedPnLPercent >= 0;
                 const isDayPositive = holding.dayChangePercent >= 0;
                 
