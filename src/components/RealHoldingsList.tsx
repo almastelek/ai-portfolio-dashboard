@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Trash2, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { useRealTimePortfolio } from '@/hooks/useRealTimePortfolio';
 import AddHoldingForm from './AddHoldingForm';
@@ -15,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface RealHoldingsListProps {
   portfolioId: string;
@@ -27,19 +25,14 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    if (portfolioId && portfolioId !== 'undefined') {
-      console.log('Fetching holdings for portfolio:', portfolioId);
+    if (portfolioId) {
       fetchHoldings(portfolioId);
     }
-  }, [portfolioId, fetchHoldings]);
+  }, [portfolioId]);
 
   const handleDelete = async (holdingId: string) => {
     if (confirm('Are you sure you want to delete this holding?')) {
       await deleteHolding(holdingId);
-      // Refresh the holdings list after deletion
-      if (portfolioId && portfolioId !== 'undefined') {
-        fetchHoldings(portfolioId);
-      }
     }
   };
 
@@ -47,30 +40,19 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     setIsRefreshing(true);
     try {
       await refreshData();
-      if (portfolioId && portfolioId !== 'undefined') {
-        await fetchHoldings(portfolioId);
-      }
+      await fetchHoldings(portfolioId);
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Show loading skeleton while data is being fetched
-  if (loading || !portfolioId || portfolioId === 'undefined') {
+  if (loading) {
     return (
-      <div className="space-y-6" data-section="holdings">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Your Holdings</h2>
-          <Skeleton className="h-10 w-32" />
+      <Card className="financial-card">
+        <div className="flex items-center justify-center p-8">
+          <div className="text-muted-foreground">Loading holdings...</div>
         </div>
-        <Card className="financial-card">
-          <div className="p-6 space-y-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        </Card>
-      </div>
+      </Card>
     );
   }
 
@@ -98,7 +80,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
         </div>
       </div>
 
-      {!holdings || holdings.length === 0 ? (
+      {holdings.length === 0 ? (
         <Card className="financial-card">
           <div className="text-center p-8 space-y-4">
             <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -138,7 +120,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <span className="font-bold">{holding.ticker}</span>
-                        {(isRefreshing || priceLoading) && (
+                        {isRefreshing && (
                           <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
                         )}
                       </div>

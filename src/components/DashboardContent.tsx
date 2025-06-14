@@ -17,7 +17,6 @@ interface DashboardContentProps {
   realTimePortfolio: Portfolio | null;
   portfolioDataLoading: boolean;
   portfolios: any[] | null;
-  portfolioId?: string;
 }
 
 const DashboardContent: React.FC<DashboardContentProps> = ({
@@ -25,8 +24,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   onTabChange,
   realTimePortfolio,
   portfolioDataLoading,
-  portfolios,
-  portfolioId
+  portfolios
 }) => {
   return (
     <div className="lg:col-span-3">
@@ -64,8 +62,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
 
           {/* Holdings */}
           <div className="animate-slide-up">
-            {portfolioId ? (
-              <RealHoldingsList portfolioId={portfolioId} />
+            {portfolios && portfolios.length > 0 ? (
+              <RealHoldingsList portfolioId={portfolios[0].id} />
             ) : (
               <div className="text-center p-4 bg-muted/20 rounded-lg">
                 <p className="text-muted-foreground">
