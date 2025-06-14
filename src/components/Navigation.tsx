@@ -1,17 +1,17 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { 
-  Home, 
-  TrendingUp, 
-  Eye, 
+  BarChart3, 
   FileText, 
+  Users, 
   Bell, 
-  Users,
-  Brain,
-  BarChart3,
-  Calculator
+  Search,
+  Plus,
+  TrendingUp,
+  DollarSign,
+  PieChart
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -20,113 +20,123 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
-  const navigationItems = [
-    {
-      icon: Home,
-      label: 'Dashboard',
-      value: 'dashboard',
-      badge: null
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'investors', label: 'Investors', icon: Users },
+    { id: 'alerts', label: 'Alerts', icon: Bell },
+    { id: 'research', label: 'Research', icon: Search },
+  ];
+
+  const quickActions = [
+    { 
+      label: 'Add Holding', 
+      icon: Plus, 
+      action: () => {
+        // Find and click the existing Add Holding button
+        const addButton = document.querySelector('[data-testid="add-holding-button"]') as HTMLButtonElement;
+        if (addButton) {
+          addButton.click();
+        } else {
+          // Fallback: scroll to holdings section
+          const holdingsSection = document.querySelector('[data-section="holdings"]');
+          if (holdingsSection) {
+            holdingsSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      }
     },
-    {
-      icon: TrendingUp,
-      label: 'Portfolio',
-      value: 'dashboard', // For now, portfolio is part of dashboard
-      badge: null
+    { 
+      label: 'View Performance', 
+      icon: TrendingUp, 
+      action: () => onTabChange('reports')
     },
-    {
-      icon: Eye,
-      label: 'Watchlist',
-      value: 'dashboard', // For now, watchlist is part of dashboard
-      badge: null
+    { 
+      label: 'Market Analysis', 
+      icon: PieChart, 
+      action: () => onTabChange('research')
     },
-    {
-      icon: FileText,
-      label: 'Reports',
-      value: 'reports',
-      badge: 'New'
+    { 
+      label: 'Portfolio Value', 
+      icon: DollarSign, 
+      action: () => {
+        // Scroll to portfolio overview
+        const portfolioSection = document.querySelector('[data-section="portfolio-overview"]');
+        if (portfolioSection) {
+          portfolioSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
     },
-    {
-      icon: Users,
-      label: 'Super Investors',
-      value: 'investors',
-      badge: 'New'
-    },
-    {
-      icon: Brain,
-      label: 'AI Ideas',
-      value: 'dashboard', // For now, AI ideas is part of dashboard
-      badge: null
-    },
-    {
-      icon: Bell,
-      label: 'Alerts',
-      value: 'alerts',
-      badge: 'New'
-    },
-    {
-      icon: BarChart3,
-      label: 'Research',
-      value: 'research',
-      badge: null
-    },
-    {
-      icon: Calculator,
-      label: 'Valuation',
-      value: 'research', // For now, valuation is part of research
-      badge: null
-    }
   ];
 
   return (
-    <Card className="financial-card">
-      <div className="space-y-2">
-        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">
-          Navigation
-        </h3>
-        
-        {navigationItems.map((item, index) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.value;
-          return (
-            <Button
-              key={index}
-              variant={isActive ? 'default' : 'ghost'}
-              className="w-full justify-start relative"
-              size="sm"
-              onClick={() => onTabChange(item.value)}
-            >
-              <Icon className="h-4 w-4 mr-3" />
-              {item.label}
-              {item.badge && (
-                <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                  {item.badge}
-                </span>
-              )}
-            </Button>
-          );
-        })}
-      </div>
-      
-      <div className="mt-8 pt-6 border-t border-border/50">
-        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-          Quick Actions
-        </h4>
-        <div className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Add Holding
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <Eye className="h-4 w-4 mr-2" />
-            Add to Watchlist
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
-            <Bell className="h-4 w-4 mr-2" />
-            Create Alert
-          </Button>
+    <div className="space-y-6">
+      {/* Navigation Menu */}
+      <Card className="financial-card">
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Navigation</h3>
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onTabChange(item.id)}
+                  className={`flex items-center space-x-3 w-full px-3 py-2 rounded-lg text-left transition-colors ${
+                    activeTab === item.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card className="financial-card">
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <div className="space-y-2">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  onClick={action.action}
+                  className="flex items-center space-x-3 w-full justify-start px-3 py-2 h-auto"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{action.label}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      {/* Market Status */}
+      <Card className="financial-card">
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Market Status</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Status</span>
+              <span className="text-sm font-medium text-profit">Open</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Next Close</span>
+              <span className="text-sm">4:00 PM EST</span>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 };
 

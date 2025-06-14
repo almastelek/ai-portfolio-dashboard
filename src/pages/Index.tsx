@@ -145,7 +145,7 @@ const Index = () => {
 
                 {/* Portfolio Overview */}
                 {realTimePortfolio && (
-                  <div className="animate-slide-up">
+                  <div className="animate-slide-up" data-section="portfolio-overview">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xl font-semibold">Portfolio Performance</h2>
                       {portfolioDataLoading && (

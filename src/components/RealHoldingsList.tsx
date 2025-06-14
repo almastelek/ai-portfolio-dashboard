@@ -52,7 +52,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-section="holdings">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Your Holdings</h2>
         <div className="flex items-center space-x-4">
@@ -66,10 +66,12 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
             <RefreshCw className={`h-4 w-4 ${priceLoading ? 'animate-spin' : ''}`} />
             <span>Refresh Prices</span>
           </Button>
-          <AddHoldingForm 
-            portfolioId={portfolioId} 
-            onSuccess={() => fetchHoldings(portfolioId)}
-          />
+          <div data-testid="add-holding-button">
+            <AddHoldingForm 
+              portfolioId={portfolioId} 
+              onSuccess={() => fetchHoldings(portfolioId)}
+            />
+          </div>
         </div>
       </div>
 
