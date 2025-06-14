@@ -9,7 +9,260 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      holdings: {
+        Row: {
+          avg_cost: number
+          company_name: string
+          created_at: string
+          id: string
+          portfolio_id: string
+          purchase_date: string
+          sector: string | null
+          shares: number
+          ticker: string
+          updated_at: string
+        }
+        Insert: {
+          avg_cost: number
+          company_name: string
+          created_at?: string
+          id?: string
+          portfolio_id: string
+          purchase_date: string
+          sector?: string | null
+          shares: number
+          ticker: string
+          updated_at?: string
+        }
+        Update: {
+          avg_cost?: number
+          company_name?: string
+          created_at?: string
+          id?: string
+          portfolio_id?: string
+          purchase_date?: string
+          sector?: string | null
+          shares?: number
+          ticker?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holdings_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_articles: {
+        Row: {
+          created_at: string
+          headline: string
+          id: string
+          published_at: string
+          sentiment_score: number | null
+          source: string
+          summary: string | null
+          ticker: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          headline: string
+          id?: string
+          published_at: string
+          sentiment_score?: number | null
+          source: string
+          summary?: string | null
+          ticker?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          headline?: string
+          id?: string
+          published_at?: string
+          sentiment_score?: number | null
+          source?: string
+          summary?: string | null
+          ticker?: string | null
+          url?: string | null
+        }
+        Relationships: []
+      }
+      portfolios: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          report_cadence: string | null
+          timezone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          report_cadence?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          report_cadence?: string | null
+          timezone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trade_ideas: {
+        Row: {
+          ai_generated: boolean | null
+          created_at: string
+          id: string
+          idea_type: string
+          rationale: string
+          status: string | null
+          target_price: number | null
+          ticker: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          created_at?: string
+          id?: string
+          idea_type: string
+          rationale: string
+          status?: string | null
+          target_price?: number | null
+          ticker: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          created_at?: string
+          id?: string
+          idea_type?: string
+          rationale?: string
+          status?: string | null
+          target_price?: number | null
+          ticker?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      valuation_models: {
+        Row: {
+          created_at: string
+          id: string
+          inputs: Json
+          model_type: string
+          results: Json
+          target_price: number | null
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inputs: Json
+          model_type: string
+          results: Json
+          target_price?: number | null
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inputs?: Json
+          model_type?: string
+          results?: Json
+          target_price?: number | null
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watchlist_items: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          tags: string[] | null
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tags?: string[] | null
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tags?: string[] | null
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
