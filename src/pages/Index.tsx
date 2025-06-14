@@ -25,7 +25,7 @@ const Index = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const { user, loading: authLoading } = useAuth();
-  const { portfolios, loading: portfolioLoading } = usePortfolio();
+  const { portfolios, holdings, loading: portfolioLoading, fetchHoldings } = usePortfolio();
   const { generateTradeIdeas, loading: aiLoading } = useEdgeFunctions();
   const navigate = useNavigate();
 
@@ -35,6 +35,13 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Fetch holdings for the first portfolio
+  useEffect(() => {
+    if (portfolios && portfolios.length > 0) {
+      fetchHoldings(portfolios[0].id);
+    }
+  }, [portfolios, fetchHoldings]);
 
   const handleHoldingClick = (holding: Holding) => {
     setSelectedHolding(holding);
@@ -54,6 +61,78 @@ const Index = () => {
     }
   };
 
+  // Calculate real portfolio metrics from holdings
+  const calculatePortfolioMetrics = () => {
+    if (!holdings || holdings.length === 0) {
+      return mockPortfolio; // Fallback to mock data if no holdings
+    }
+
+    // For now, we'll use mock prices since we don't have real-time data
+    // In a real app, you'd fetch current prices from an API
+    const mockPrices = {
+      'AAPL': 150.00,
+      'GOOGL': 2800.00,
+      'MSFT': 300.00,
+      'TSLA': 800.00,
+      'NVDA': 900.00
+    };
+
+    let totalValue = 0;
+    let totalCost = 0;
+    let totalDayChange = 0;
+
+    const enrichedHoldings = holdings.map(holding => {
+      const currentPrice = mockPrices[holding.ticker as keyof typeof mockPrices] || holding.avg_cost * 1.05;
+      const marketValue = Number(holding.shares) * currentPrice;
+      const costBasis = Number(holding.shares) * Number(holding.avg_cost);
+      const unrealizedPnL = marketValue - costBasis;
+      const unrealizedPnLPercent = (unrealizedPnL / costBasis) * 100;
+      const dayChange = marketValue * 0.012; // Mock 1.2% daily change
+      const dayChangePercent = 1.2;
+
+      totalValue += marketValue;
+      totalCost += costBasis;
+      totalDayChange += dayChange;
+
+      return {
+        id: holding.id,
+        ticker: holding.ticker,
+        companyName: holding.company_name,
+        shares: Number(holding.shares),
+        avgCost: Number(holding.avg_cost),
+        currentPrice,
+        marketValue,
+        unrealizedPnL,
+        unrealizedPnLPercent,
+        dayChange,
+        dayChangePercent,
+        sector: holding.sector || 'Technology',
+        weight: 0 // Will be calculated after we have totalValue
+      };
+    });
+
+    // Calculate weights
+    enrichedHoldings.forEach(holding => {
+      holding.weight = (holding.marketValue / totalValue) * 100;
+    });
+
+    const totalPnL = totalValue - totalCost;
+    const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
+    const dayChangePercent = totalValue > 0 ? (totalDayChange / totalValue) * 100 : 0;
+
+    return {
+      id: portfolios?.[0]?.id || 'default',
+      name: portfolios?.[0]?.name || 'My Portfolio',
+      totalValue,
+      totalCost,
+      totalPnL,
+      totalPnLPercent,
+      dayChange: totalDayChange,
+      dayChangePercent,
+      holdings: enrichedHoldings
+    };
+  };
+
   // Show loading state while checking authentication
   if (authLoading || portfolioLoading) {
     return (
@@ -71,7 +150,7 @@ const Index = () => {
     return null;
   }
 
-  const defaultPortfolio = portfolios?.[0];
+  const portfolioData = calculatePortfolioMetrics();
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,7 +190,7 @@ const Index = () => {
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <Navigation />
+              <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
             </div>
           </div>
 
@@ -136,13 +215,13 @@ const Index = () => {
                 {/* Portfolio Overview */}
                 <div className="animate-slide-up">
                   <h2 className="text-xl font-semibold mb-4">Portfolio Performance</h2>
-                  <PortfolioOverview portfolio={mockPortfolio} />
+                  <PortfolioOverview portfolio={portfolioData} />
                 </div>
 
                 {/* Holdings */}
                 <div className="animate-slide-up">
-                  {defaultPortfolio ? (
-                    <RealHoldingsList portfolioId={defaultPortfolio.id} />
+                  {portfolios && portfolios.length > 0 ? (
+                    <RealHoldingsList portfolioId={portfolios[0].id} />
                   ) : (
                     <div className="space-y-4">
                       <div className="text-center p-4 bg-muted/20 rounded-lg">

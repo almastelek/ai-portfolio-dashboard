@@ -14,56 +14,66 @@ import {
   Calculator
 } from 'lucide-react';
 
-const Navigation = () => {
+interface NavigationProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const navigationItems = [
     {
       icon: Home,
       label: 'Dashboard',
-      href: '#dashboard',
-      active: true
+      value: 'dashboard',
+      badge: null
     },
     {
       icon: TrendingUp,
       label: 'Portfolio',
-      href: '#portfolio'
+      value: 'dashboard', // For now, portfolio is part of dashboard
+      badge: null
     },
     {
       icon: Eye,
       label: 'Watchlist',
-      href: '#watchlist'
+      value: 'dashboard', // For now, watchlist is part of dashboard
+      badge: null
     },
     {
       icon: FileText,
       label: 'Reports',
-      href: '#reports',
+      value: 'reports',
       badge: 'New'
     },
     {
       icon: Users,
       label: 'Super Investors',
-      href: '#super-investors',
+      value: 'investors',
       badge: 'New'
     },
     {
       icon: Brain,
       label: 'AI Ideas',
-      href: '#ai-ideas'
+      value: 'dashboard', // For now, AI ideas is part of dashboard
+      badge: null
     },
     {
       icon: Bell,
       label: 'Alerts',
-      href: '#alerts',
+      value: 'alerts',
       badge: 'New'
     },
     {
       icon: BarChart3,
       label: 'Research',
-      href: '#research'
+      value: 'research',
+      badge: null
     },
     {
       icon: Calculator,
       label: 'Valuation',
-      href: '#valuation'
+      value: 'research', // For now, valuation is part of research
+      badge: null
     }
   ];
 
@@ -76,12 +86,14 @@ const Navigation = () => {
         
         {navigationItems.map((item, index) => {
           const Icon = item.icon;
+          const isActive = activeTab === item.value;
           return (
             <Button
               key={index}
-              variant={item.active ? 'default' : 'ghost'}
+              variant={isActive ? 'default' : 'ghost'}
               className="w-full justify-start relative"
               size="sm"
+              onClick={() => onTabChange(item.value)}
             >
               <Icon className="h-4 w-4 mr-3" />
               {item.label}
