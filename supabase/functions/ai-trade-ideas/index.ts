@@ -22,13 +22,13 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '')
     const { data: user } = await supabaseClient.auth.getUser(token)
 
-    if (!user) {
+    if (!user.user) {
       throw new Error('Unauthorized')
     }
 
     const { type = 'technical' } = await req.json()
 
-    // Mock AI-generated trade ideas
+    // Mock AI-generated trade ideas (will be enhanced with real AI)
     const ideas = [
       {
         ticker: 'AAPL',
@@ -62,18 +62,22 @@ serve(async (req) => {
       .insert(
         ideas.map(idea => ({
           ...idea,
-          user_id: user.user?.id
+          user_id: user.user.id
         }))
       )
       .select()
 
-    if (error) throw error
+    if (error) {
+      console.error('Database error:', error)
+      throw error
+    }
 
     return new Response(
       JSON.stringify({ ideas: data }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {
+    console.error('Error in ai-trade-ideas function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 },

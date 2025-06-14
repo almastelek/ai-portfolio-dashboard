@@ -13,12 +13,17 @@ import RealHoldingsList from '../components/RealHoldingsList';
 import Navigation from '../components/Navigation';
 import HoldingDetailModal from '../components/HoldingDetailModal';
 import UserProfile from '../components/UserProfile';
+import ReportsCenter from '../components/ReportsCenter';
+import SuperInvestorTracker from '../components/SuperInvestorTracker';
+import AlertsManager from '../components/AlertsManager';
 import { Button } from '../components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Sparkles, TrendingUp } from 'lucide-react';
 
 const Index = () => {
   const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const { user, loading: authLoading } = useAuth();
   const { portfolios, loading: portfolioLoading } = usePortfolio();
   const { generateTradeIdeas, loading: aiLoading } = useEdgeFunctions();
@@ -111,37 +116,68 @@ const Index = () => {
           </div>
 
           {/* Main Dashboard */}
-          <div className="lg:col-span-3 space-y-8">
-            {/* Market Summary */}
-            <div className="animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4">Market Overview</h2>
-              <MarketSummary data={mockMarketSummary} />
-            </div>
+          <div className="lg:col-span-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid grid-cols-5 w-full">
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                <TabsTrigger value="reports">Reports</TabsTrigger>
+                <TabsTrigger value="investors">Investors</TabsTrigger>
+                <TabsTrigger value="alerts">Alerts</TabsTrigger>
+                <TabsTrigger value="research">Research</TabsTrigger>
+              </TabsList>
 
-            {/* Portfolio Overview */}
-            <div className="animate-slide-up">
-              <h2 className="text-xl font-semibold mb-4">Portfolio Performance</h2>
-              <PortfolioOverview portfolio={mockPortfolio} />
-            </div>
-
-            {/* Holdings - Show real holdings if user has them, otherwise show demo */}
-            <div className="animate-slide-up">
-              {defaultPortfolio ? (
-                <RealHoldingsList portfolioId={defaultPortfolio.id} />
-              ) : (
-                <div className="space-y-4">
-                  <div className="text-center p-4 bg-muted/20 rounded-lg">
-                    <p className="text-muted-foreground">
-                      No portfolio found. A default portfolio should have been created automatically.
-                    </p>
-                  </div>
-                  <HoldingsList 
-                    holdings={mockPortfolio.holdings} 
-                    onHoldingClick={handleHoldingClick}
-                  />
+              <TabsContent value="dashboard" className="space-y-8">
+                {/* Market Summary */}
+                <div className="animate-fade-in">
+                  <h2 className="text-xl font-semibold mb-4">Market Overview</h2>
+                  <MarketSummary data={mockMarketSummary} />
                 </div>
-              )}
-            </div>
+
+                {/* Portfolio Overview */}
+                <div className="animate-slide-up">
+                  <h2 className="text-xl font-semibold mb-4">Portfolio Performance</h2>
+                  <PortfolioOverview portfolio={mockPortfolio} />
+                </div>
+
+                {/* Holdings */}
+                <div className="animate-slide-up">
+                  {defaultPortfolio ? (
+                    <RealHoldingsList portfolioId={defaultPortfolio.id} />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="text-center p-4 bg-muted/20 rounded-lg">
+                        <p className="text-muted-foreground">
+                          No portfolio found. A default portfolio should have been created automatically.
+                        </p>
+                      </div>
+                      <HoldingsList 
+                        holdings={mockPortfolio.holdings} 
+                        onHoldingClick={handleHoldingClick}
+                      />
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="reports">
+                <ReportsCenter />
+              </TabsContent>
+
+              <TabsContent value="investors">
+                <SuperInvestorTracker />
+              </TabsContent>
+
+              <TabsContent value="alerts">
+                <AlertsManager />
+              </TabsContent>
+
+              <TabsContent value="research">
+                <div className="text-center p-8">
+                  <h3 className="text-xl font-semibold mb-2">Research Center</h3>
+                  <p className="text-muted-foreground">Coming soon - AI-powered research and analysis tools</p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

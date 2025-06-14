@@ -1,63 +1,118 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
-  BarChart3, 
-  PieChart, 
+  Home, 
   TrendingUp, 
-  Calendar, 
+  Eye, 
+  FileText, 
   Bell, 
-  Settings,
-  BookOpen,
   Users,
-  Target
+  Brain,
+  BarChart3,
+  Calculator
 } from 'lucide-react';
 
-const Navigation: React.FC = () => {
-  const navItems = [
-    { name: 'Portfolio', icon: PieChart, active: true, description: 'Main dashboard' },
-    { name: 'Analytics', icon: BarChart3, active: false, description: 'Performance insights' },
-    { name: 'Valuations', icon: Target, active: false, description: 'DCF & Comps' },
-    { name: 'Reports', icon: Calendar, active: false, description: 'Daily & weekly reports' },
-    { name: 'Trade Ideas', icon: TrendingUp, active: false, description: 'AI suggestions' },
-    { name: 'Super Investors', icon: Users, active: false, description: 'Follow the smart money' },
-    { name: 'Research', icon: BookOpen, active: false, description: 'News & analysis' },
-    { name: 'Alerts', icon: Bell, active: false, description: 'Price & event alerts' },
-    { name: 'Settings', icon: Settings, active: false, description: 'Preferences' }
+const Navigation = () => {
+  const navigationItems = [
+    {
+      icon: Home,
+      label: 'Dashboard',
+      href: '#dashboard',
+      active: true
+    },
+    {
+      icon: TrendingUp,
+      label: 'Portfolio',
+      href: '#portfolio'
+    },
+    {
+      icon: Eye,
+      label: 'Watchlist',
+      href: '#watchlist'
+    },
+    {
+      icon: FileText,
+      label: 'Reports',
+      href: '#reports',
+      badge: 'New'
+    },
+    {
+      icon: Users,
+      label: 'Super Investors',
+      href: '#super-investors',
+      badge: 'New'
+    },
+    {
+      icon: Brain,
+      label: 'AI Ideas',
+      href: '#ai-ideas'
+    },
+    {
+      icon: Bell,
+      label: 'Alerts',
+      href: '#alerts',
+      badge: 'New'
+    },
+    {
+      icon: BarChart3,
+      label: 'Research',
+      href: '#research'
+    },
+    {
+      icon: Calculator,
+      label: 'Valuation',
+      href: '#valuation'
+    }
   ];
 
   return (
-    <Card className="financial-card p-4">
+    <Card className="financial-card">
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold mb-4">Investment Dashboard</h3>
-        {navItems.map((item) => {
+        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-4">
+          Navigation
+        </h3>
+        
+        {navigationItems.map((item, index) => {
           const Icon = item.icon;
           return (
-            <div
-              key={item.name}
-              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 group ${
-                item.active 
-                  ? 'bg-primary/10 text-primary border border-primary/20' 
-                  : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-              }`}
+            <Button
+              key={index}
+              variant={item.active ? 'default' : 'ghost'}
+              className="w-full justify-start relative"
+              size="sm"
             >
-              <Icon className={`h-5 w-5 ${item.active ? 'text-primary' : ''}`} />
-              <div className="flex-1">
-                <p className={`font-medium ${item.active ? 'text-primary' : ''}`}>
-                  {item.name}
-                </p>
-                <p className="text-xs text-muted-foreground group-hover:text-muted-foreground/80">
-                  {item.description}
-                </p>
-              </div>
-              {!item.active && (
-                <div className="text-xs bg-muted/50 px-2 py-1 rounded text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                  Coming Soon
-                </div>
+              <Icon className="h-4 w-4 mr-3" />
+              {item.label}
+              {item.badge && (
+                <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                  {item.badge}
+                </span>
               )}
-            </div>
+            </Button>
           );
         })}
+      </div>
+      
+      <div className="mt-8 pt-6 border-t border-border/50">
+        <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
+          Quick Actions
+        </h4>
+        <div className="space-y-2">
+          <Button variant="outline" size="sm" className="w-full justify-start">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Add Holding
+          </Button>
+          <Button variant="outline" size="sm" className="w-full justify-start">
+            <Eye className="h-4 w-4 mr-2" />
+            Add to Watchlist
+          </Button>
+          <Button variant="outline" size="sm" className="w-full justify-start">
+            <Bell className="h-4 w-4 mr-2" />
+            Create Alert
+          </Button>
+        </div>
       </div>
     </Card>
   );
