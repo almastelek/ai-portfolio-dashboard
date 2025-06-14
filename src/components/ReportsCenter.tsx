@@ -37,6 +37,7 @@ const ReportsCenter = () => {
   const handleGenerateReport = async (type: 'morning' | 'evening' | 'weekly') => {
     try {
       const report = await generateReport(type);
+      console.log('Generated report:', report);
       setActiveReport(report.report);
     } catch (error) {
       console.error('Error generating report:', error);
@@ -115,7 +116,7 @@ const ReportsCenter = () => {
             </div>
             
             <div className="space-y-4">
-              {Object.entries(activeReport.sections).map(([key, section]) => (
+              {activeReport.sections && Object.entries(activeReport.sections).map(([key, section]) => (
                 <div key={key} className="border-l-4 border-primary pl-4">
                   <h4 className="font-semibold mb-2">{section.title}</h4>
                   {section.content && (
