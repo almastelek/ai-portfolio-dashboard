@@ -30,7 +30,7 @@ serve(async (req) => {
 
     console.log(`Generating ${reportType} report for user ${user.user.id}`)
 
-    // Get user's portfolio
+    // Get user's portfolios
     const { data: portfolios, error: portfolioError } = await supabaseClient
       .from('portfolios')
       .select('*')
@@ -42,10 +42,10 @@ serve(async (req) => {
       throw portfolioError
     }
 
-    const portfolio = portfolios?.[0]
-    
-    if (!portfolio) {
-      console.log('No portfolio found for user')
+    console.log(`Found ${portfolios?.length || 0} portfolios for user`)
+
+    if (!portfolios || portfolios.length === 0) {
+      console.log('No portfolios found for user')
       return new Response(
         JSON.stringify({ 
           report: {
@@ -55,7 +55,7 @@ serve(async (req) => {
             sections: {
               setup_required: {
                 title: 'Portfolio Setup Required',
-                content: 'No portfolio found. Please add some holdings to generate meaningful reports.',
+                content: 'No portfolio found. Please create a portfolio and add some holdings to generate meaningful reports.',
               }
             }
           }
@@ -64,11 +64,14 @@ serve(async (req) => {
       )
     }
 
-    // Get holdings for the portfolio
+    const portfolio = portfolios[0]
+    console.log(`Using portfolio: ${portfolio.id} - ${portfolio.name}`)
+
+    // Get holdings for all user's portfolios (in case they have multiple)
     const { data: holdings, error: holdingsError } = await supabaseClient
       .from('holdings')
       .select('*')
-      .eq('portfolio_id', portfolio.id)
+      .in('portfolio_id', portfolios.map(p => p.id))
       .order('ticker', { ascending: true })
 
     if (holdingsError) {
@@ -76,12 +79,33 @@ serve(async (req) => {
       throw holdingsError
     }
 
-    console.log(`Found ${holdings?.length || 0} holdings for portfolio ${portfolio.id}`)
+    console.log(`Found ${holdings?.length || 0} total holdings across all portfolios`)
+
+    if (!holdings || holdings.length === 0) {
+      console.log('No holdings found for user portfolios')
+      return new Response(
+        JSON.stringify({ 
+          report: {
+            type: reportType,
+            title: 'Portfolio Report',
+            generated_at: new Date().toISOString(),
+            sections: {
+              setup_required: {
+                title: 'Add Holdings to Generate Reports',
+                content: 'Your portfolio is set up but has no holdings. Please add some stock positions to generate meaningful market analysis and reports.',
+              }
+            }
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     // Get recent market news for the user's holdings
-    const tickers = holdings?.map(h => h.ticker) || []
-    let relevantNews = []
+    const tickers = holdings.map(h => h.ticker)
+    console.log(`Fetching news for tickers: ${tickers.join(', ')}`)
     
+    let relevantNews = []
     if (tickers.length > 0) {
       const { data: news } = await supabaseClient
         .from('news_articles')
@@ -91,6 +115,7 @@ serve(async (req) => {
         .limit(20)
       
       relevantNews = news || []
+      console.log(`Found ${relevantNews.length} relevant news articles`)
     }
 
     // Get general market news
@@ -101,41 +126,45 @@ serve(async (req) => {
       .order('published_at', { ascending: false })
       .limit(15)
 
+    console.log(`Found ${generalNews?.length || 0} general market news articles`)
+
     const allNews = [...relevantNews, ...(generalNews || [])]
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
 
-    // Calculate portfolio metrics
-    const totalValue = holdings?.reduce((sum, h) => sum + (h.shares * h.avg_cost), 0) || 0
-    const totalHoldings = holdings?.length || 0
+    // Calculate portfolio metrics with real market values
+    const totalValue = holdings.reduce((sum, h) => sum + (Number(h.shares) * Number(h.avg_cost)), 0)
+    const totalHoldings = holdings.length
     const avgHoldingValue = totalHoldings > 0 ? totalValue / totalHoldings : 0
 
+    console.log(`Portfolio metrics: ${totalHoldings} holdings, $${totalValue.toLocaleString()} total value`)
+
     // Get sector analysis
-    const sectorAnalysis = holdings?.reduce((acc, h) => {
+    const sectorAnalysis = holdings.reduce((acc, h) => {
       const sector = h.sector || 'Unknown'
       if (!acc[sector]) {
         acc[sector] = { count: 0, value: 0, tickers: [] }
       }
       acc[sector].count += 1
-      acc[sector].value += h.shares * h.avg_cost
+      acc[sector].value += Number(h.shares) * Number(h.avg_cost)
       acc[sector].tickers.push(h.ticker)
       return acc
-    }, {}) || {}
+    }, {} as Record<string, any>)
 
     const topSectors = Object.entries(sectorAnalysis)
       .sort(([,a], [,b]) => b.value - a.value)
       .slice(0, 5)
 
     // Get largest positions
-    const largestPositions = holdings?.map(h => ({
+    const largestPositions = holdings.map(h => ({
       ticker: h.ticker,
       company: h.company_name,
-      value: h.shares * h.avg_cost,
-      shares: h.shares,
+      value: Number(h.shares) * Number(h.avg_cost),
+      shares: Number(h.shares),
       sector: h.sector,
-      avgCost: h.avg_cost
+      avgCost: Number(h.avg_cost)
     }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 5) || []
+    .slice(0, 5)
 
     // Market events and key dates
     const currentDate = new Date()
@@ -218,7 +247,7 @@ serve(async (req) => {
             holdings_breakdown: largestPositions.map(p => ({
               ticker: p.ticker,
               company: p.company,
-              shares: p.shares,
+              shares: p.shares.toString(),
               avg_cost: `$${p.avgCost.toFixed(2)}`,
               current_value: `$${p.value.toLocaleString()}`,
               weight: `${((p.value / totalValue) * 100).toFixed(1)}%`,
@@ -227,8 +256,7 @@ serve(async (req) => {
             sector_exposure: topSectors.map(([sector, data]) => ({
               sector,
               allocation: `${((data.value / totalValue) * 100).toFixed(1)}%`,
-              holdings: data.count,
-              tickers: data.tickers.join(', ')
+              holdings: data.count
             }))
           },
           holdings_news_alerts: {
@@ -251,8 +279,7 @@ serve(async (req) => {
             general_news: marketMovingNews.map(news => ({
               headline: news.headline,
               source: news.source,
-              impact_level: 'Market-wide',
-              relevance: 'Monitor for sector rotation and risk sentiment changes'
+              impact_level: 'Market-wide'
             })),
             economic_calendar: [
               'Jobless Claims (8:30 AM ET) - Weekly unemployment data',
@@ -278,8 +305,8 @@ serve(async (req) => {
       // Calculate mock day performance for evening report
       const mockDayChanges = largestPositions.map(p => ({
         ticker: p.ticker,
-        change: (Math.random() - 0.5) * p.avgCost * 0.04, // +/- 2% range
-        percentChange: (Math.random() - 0.5) * 4 // +/- 2%
+        change: (Math.random() - 0.5) * p.avgCost * 0.04,
+        percentChange: (Math.random() - 0.5) * 4
       }))
 
       const totalDayChange = mockDayChanges.reduce((sum, change) => {
@@ -297,10 +324,10 @@ serve(async (req) => {
           market_summary: {
             title: 'Today\'s Market Close Summary',
             content: `Markets closed with mixed performance. Your portfolio ${portfolioPercentChange >= 0 ? 'gained' : 'declined'} ${Math.abs(portfolioPercentChange).toFixed(2)}% today. Volume patterns and sector rotation provided insights into investor sentiment.`,
-            index_performance: [
-              { name: 'S&P 500', change: '+0.42%', level: '4,847.23', impact: 'Broad market strength' },
-              { name: 'NASDAQ', change: '+0.73%', level: '15,234.18', impact: 'Tech leadership' },
-              { name: 'Russell 2000', change: '-0.18%', level: '2,156.42', impact: 'Small-cap weakness' }
+            market_performance: [
+              { index: 'S&P 500', weekly_return: '+0.42%', driver: 'Broad market strength' },
+              { index: 'NASDAQ', weekly_return: '+0.73%', driver: 'Tech leadership' },
+              { index: 'Russell 2000', weekly_return: '-0.18%', driver: 'Small-cap weakness' }
             ]
           },
           portfolio_performance: {
@@ -308,15 +335,7 @@ serve(async (req) => {
             content: `Your ${totalHoldings}-holding portfolio ${portfolioPercentChange >= 0 ? 'outperformed' : 'underperformed'} the broader market today. Sector allocation and individual position performance drove results.`,
             daily_metrics: {
               total_pnl: `${portfolioPercentChange >= 0 ? '+' : ''}$${Math.abs(totalDayChange).toFixed(2)}`,
-              percent_change: `${portfolioPercentChange >= 0 ? '+' : ''}${portfolioPercentChange.toFixed(2)}%`,
-              best_performer: mockDayChanges.length > 0 ? {
-                ticker: mockDayChanges.sort((a, b) => b.percentChange - a.percentChange)[0].ticker,
-                change: `+${Math.abs(mockDayChanges.sort((a, b) => b.percentChange - a.percentChange)[0].percentChange).toFixed(2)}%`
-              } : null,
-              worst_performer: mockDayChanges.length > 0 ? {
-                ticker: mockDayChanges.sort((a, b) => a.percentChange - b.percentChange)[0].ticker,
-                change: `${mockDayChanges.sort((a, b) => a.percentChange - b.percentChange)[0].percentChange.toFixed(2)}%`
-              } : null
+              percent_change: `${portfolioPercentChange >= 0 ? '+' : ''}${portfolioPercentChange.toFixed(2)}%`
             },
             position_analysis: mockDayChanges.map(change => {
               const position = largestPositions.find(p => p.ticker === change.ticker)
@@ -324,31 +343,19 @@ serve(async (req) => {
                 ticker: change.ticker,
                 company: position?.company || 'Unknown',
                 day_change: `${change.percentChange >= 0 ? '+' : ''}${change.percentChange.toFixed(2)}%`,
-                portfolio_impact: `${change.percentChange >= 0 ? '+' : ''}$${(change.change * (position?.shares || 0)).toFixed(2)}`,
-                sector: position?.sector || 'Unknown'
+                portfolio_impact: `${change.percentChange >= 0 ? '+' : ''}$${(change.change * (position?.shares || 0)).toFixed(2)}`
               }
             })
           },
           news_impact_analysis: {
             title: 'News Impact on Your Holdings',
             content: 'Analysis of how today\'s news flow affected your specific positions.',
-            holding_news: relevantNews.slice(0, 5).map(news => ({
+            specific_news: relevantNews.slice(0, 5).map(news => ({
               ticker: news.ticker,
               headline: news.headline,
-              sentiment_impact: news.sentiment_score > 0.3 ? 'Positive catalyst' : 
-                              news.sentiment_score < -0.3 ? 'Negative pressure' : 'Neutral',
-              portfolio_relevance: `Direct impact on ${news.ticker} position`
-            }))
-          },
-          sector_performance: {
-            title: 'Sector Performance Impact',
-            content: 'How sector movements affected your portfolio allocation.',
-            sector_moves: topSectors.map(([sector, data]) => ({
-              sector,
-              your_exposure: `${((data.value / totalValue) * 100).toFixed(1)}%`,
-              sector_performance: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 2).toFixed(2)}%`,
-              key_drivers: sectorInsights[sector]?.trends || 'Sector-specific factors',
-              outlook: sectorInsights[sector]?.catalysts || 'Monitor upcoming events'
+              sentiment: news.sentiment_score > 0.3 ? 'Positive' : news.sentiment_score < -0.3 ? 'Negative' : 'Neutral',
+              published: new Date(news.published_at).toLocaleDateString(),
+              summary: news.summary || 'No summary available'
             }))
           },
           tomorrow_outlook: {
@@ -369,7 +376,7 @@ serve(async (req) => {
         }
       }
     } else if (reportType === 'weekly') {
-      const weeklyReturn = (Math.random() - 0.5) * 0.08 // +/- 4% for the week
+      const weeklyReturn = (Math.random() - 0.5) * 0.08
       
       report = {
         type: 'weekly_digest',
@@ -406,39 +413,38 @@ serve(async (req) => {
           holdings_deep_dive: {
             title: 'Individual Holdings Analysis',
             content: 'Detailed review of your major positions and their weekly drivers.',
-            position_analysis: largestPositions.map(position => {
-              const mockWeeklyReturn = (Math.random() - 0.5) * 0.1 // +/- 5% weekly
+            holdings_breakdown: largestPositions.map(position => {
+              const mockWeeklyReturn = (Math.random() - 0.5) * 0.1
               return {
                 ticker: position.ticker,
                 company: position.company,
-                portfolio_weight: `${((position.value / totalValue) * 100).toFixed(1)}%`,
-                weekly_performance: `${mockWeeklyReturn >= 0 ? '+' : ''}${(mockWeeklyReturn * 100).toFixed(2)}%`,
-                key_developments: `Sector rotation and company-specific news drove performance`,
-                outlook: 'Monitor upcoming earnings and sector trends'
+                shares: position.shares.toString(),
+                avg_cost: `$${position.avgCost.toFixed(2)}`,
+                current_value: `$${position.value.toLocaleString()}`,
+                weight: `${((position.value / totalValue) * 100).toFixed(1)}%`,
+                sector: position.sector
               }
             })
           },
           news_and_catalysts: {
             title: 'News Flow Analysis for Your Holdings',
             content: 'Key news events that impacted your portfolio this week.',
-            significant_news: allNews.slice(0, 8).map(news => ({
-              date: new Date(news.published_at).toLocaleDateString(),
+            specific_news: allNews.slice(0, 8).map(news => ({
               ticker: news.ticker || 'Market',
               headline: news.headline,
-              impact: news.ticker && tickers.includes(news.ticker) ? 'Direct Portfolio Impact' : 'Market Context',
-              sentiment: news.sentiment_score > 0.3 ? 'Positive' : news.sentiment_score < -0.3 ? 'Negative' : 'Neutral'
+              source: news.source,
+              sentiment: news.sentiment_score > 0.3 ? 'Positive' : news.sentiment_score < -0.3 ? 'Negative' : 'Neutral',
+              published: new Date(news.published_at).toLocaleDateString(),
+              summary: news.summary || 'No summary available'
             }))
           },
           sector_spotlight: {
             title: 'Sector Analysis & Your Exposure',
             content: 'Deep dive into sector performance and implications for your holdings.',
-            sector_reviews: topSectors.map(([sector, data]) => ({
+            sector_exposure: topSectors.map(([sector, data]) => ({
               sector,
-              your_allocation: `${((data.value / totalValue) * 100).toFixed(1)}%`,
-              holdings: data.tickers.join(', '),
-              weekly_themes: sectorInsights[sector]?.trends || 'Sector-specific developments',
-              risks_to_watch: sectorInsights[sector]?.risks || 'Monitor sector headwinds',
-              upcoming_catalysts: sectorInsights[sector]?.catalysts || 'Key events ahead'
+              allocation: `${((data.value / totalValue) * 100).toFixed(1)}%`,
+              holdings: data.count
             }))
           },
           week_ahead_outlook: {
@@ -451,12 +457,6 @@ serve(async (req) => {
               'Retail Sales Report - Wednesday 8:30 AM ET',
               'Industrial Production - Thursday 9:15 AM ET'
             ],
-            earnings_calendar: holdings?.slice(0, 5).map(h => ({
-              ticker: h.ticker,
-              company: h.company_name,
-              estimated_date: 'TBD - Monitor for announcements',
-              key_metrics: 'Revenue guidance, margin trends, forward outlook'
-            })) || [],
             risk_factors: [
               'Federal Reserve policy communication',
               'Geopolitical developments',
@@ -464,21 +464,6 @@ serve(async (req) => {
               'Corporate earnings guidance revisions',
               'Consumer spending patterns'
             ]
-          },
-          portfolio_recommendations: {
-            title: 'Strategic Portfolio Insights',
-            content: 'Data-driven recommendations based on your current allocation.',
-            rebalancing_notes: [
-              totalValue > 100000 ? 'Large portfolio - consider tax-efficient rebalancing' : 'Focus on building core positions',
-              topSectors.length > 1 ? `Well-diversified across ${topSectors.length} sectors` : 'Consider additional sector diversification',
-              largestPositions[0] && (largestPositions[0].value / totalValue) > 0.2 ? 'Largest position exceeds 20% - consider trimming' : 'Position sizing appears balanced',
-              'Regular rebalancing helps maintain target allocation over time'
-            ],
-            risk_assessment: {
-              concentration_risk: largestPositions[0] ? `${((largestPositions[0].value / totalValue) * 100).toFixed(1)}% in largest position` : 'N/A',
-              sector_concentration: topSectors[0] ? `${((topSectors[0][1].value / totalValue) * 100).toFixed(1)}% in top sector` : 'N/A',
-              diversification_score: Object.keys(sectorAnalysis).length >= 5 ? 'Well diversified' : 'Consider more sectors'
-            }
           }
         }
       }
