@@ -1,54 +1,79 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { EnrichedHolding } from '@/types/realTimePortfolio';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RefreshCw } from 'lucide-react';
 import HoldingsTableRow from './HoldingsTableRow';
 
+interface Holding {
+  id: string;
+  ticker: string;
+  company_name: string;
+  shares: number;
+  avg_cost: number;
+  purchase_date: string;
+  sector: string;
+  currentPrice?: number;
+  currentValue?: number;
+  dailyChange?: number;
+  dailyChangePercent?: number;
+  totalGainLoss?: number;
+  totalGainLossPercent?: number;
+  weight?: number;
+}
+
 interface HoldingsTableProps {
-  holdings: EnrichedHolding[];
+  holdings: Holding[];
   isRefreshing: boolean;
-  onDelete: (holdingId: string) => void;
+  onDelete: (id: string) => void;
+  onEdit?: () => void;
 }
 
 const HoldingsTable: React.FC<HoldingsTableProps> = ({ 
   holdings, 
   isRefreshing, 
-  onDelete 
+  onDelete, 
+  onEdit 
 }) => {
   return (
     <Card className="financial-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Symbol</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead className="text-right">Shares</TableHead>
-            <TableHead className="text-right">Avg Cost</TableHead>
-            <TableHead className="text-right">Current Price</TableHead>
-            <TableHead className="text-right">Market Value</TableHead>
-            <TableHead className="text-right">P&L</TableHead>
-            <TableHead>Sector</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {holdings.map((holding) => (
-            <HoldingsTableRow
-              key={holding.id}
-              holding={holding}
-              isRefreshing={isRefreshing}
-              onDelete={onDelete}
-            />
-          ))}
-        </TableBody>
-      </Table>
+      <div className="space-y-4">
+        {isRefreshing && (
+          <div className="flex items-center justify-center py-4">
+            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+            <span className="text-sm text-muted-foreground">Updating prices...</span>
+          </div>
+        )}
+        
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stock</TableHead>
+                <TableHead>Sector</TableHead>
+                <TableHead className="text-right">Shares</TableHead>
+                <TableHead className="text-right">Avg Cost</TableHead>
+                <TableHead className="text-right">Current Price</TableHead>
+                <TableHead className="text-right">Market Value</TableHead>
+                <TableHead className="text-right">Day Change</TableHead>
+                <TableHead className="text-right">Total Return</TableHead>
+                <TableHead className="text-right">Weight</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {holdings.map((holding) => (
+                <HoldingsTableRow
+                  key={holding.id}
+                  holding={holding}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </Card>
   );
 };

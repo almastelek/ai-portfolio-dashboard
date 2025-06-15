@@ -39,7 +39,7 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
     }
   };
 
-  const handleHoldingAdded = () => {
+  const handleHoldingUpdated = () => {
     if (portfolioId) {
       fetchHoldings(portfolioId);
     }
@@ -65,19 +65,20 @@ const RealHoldingsList: React.FC<RealHoldingsListProps> = ({ portfolioId }) => {
         portfolioId={portfolioId}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
-        onHoldingAdded={handleHoldingAdded}
+        onHoldingAdded={handleHoldingUpdated}
       />
 
       {displayHoldings.length === 0 ? (
         <HoldingsEmptyState
           portfolioId={portfolioId}
-          onHoldingAdded={handleHoldingAdded}
+          onHoldingAdded={handleHoldingUpdated}
         />
       ) : (
         <HoldingsTable
           holdings={displayHoldings}
           isRefreshing={isRefreshing}
           onDelete={handleDelete}
+          onEdit={handleHoldingUpdated}
         />
       )}
     </div>
