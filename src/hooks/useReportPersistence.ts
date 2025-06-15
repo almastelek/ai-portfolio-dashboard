@@ -37,7 +37,14 @@ export const useReportPersistence = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setSavedReports(data || []);
+      
+      // Type cast the data to match our SavedReport interface
+      const typedReports: SavedReport[] = (data || []).map(report => ({
+        ...report,
+        report_type: report.report_type as 'morning' | 'evening' | 'weekly'
+      }));
+      
+      setSavedReports(typedReports);
     } catch (error: any) {
       console.error('Error fetching saved reports:', error);
       toast({
