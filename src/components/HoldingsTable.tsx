@@ -4,26 +4,10 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RefreshCw } from 'lucide-react';
 import HoldingsTableRow from './HoldingsTableRow';
-
-interface Holding {
-  id: string;
-  ticker: string;
-  company_name: string;
-  shares: number;
-  avg_cost: number;
-  purchase_date: string;
-  sector: string;
-  currentPrice?: number;
-  currentValue?: number;
-  dailyChange?: number;
-  dailyChangePercent?: number;
-  totalGainLoss?: number;
-  totalGainLossPercent?: number;
-  weight?: number;
-}
+import { EnrichedHolding } from '@/types/realTimePortfolio';
 
 interface HoldingsTableProps {
-  holdings: Holding[];
+  holdings: EnrichedHolding[];
   isRefreshing: boolean;
   onDelete: (id: string) => void;
   onEdit?: () => void;

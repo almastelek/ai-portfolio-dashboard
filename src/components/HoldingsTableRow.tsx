@@ -5,26 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Edit } from 'lucide-react';
 import EditHoldingForm from './EditHoldingForm';
-
-interface Holding {
-  id: string;
-  ticker: string;
-  company_name: string;
-  shares: number;
-  avg_cost: number;
-  purchase_date: string;
-  sector: string;
-  currentPrice?: number;
-  currentValue?: number;
-  dailyChange?: number;
-  dailyChangePercent?: number;
-  totalGainLoss?: number;
-  totalGainLossPercent?: number;
-  weight?: number;
-}
+import { EnrichedHolding } from '@/types/realTimePortfolio';
 
 interface HoldingsTableRowProps {
-  holding: Holding;
+  holding: EnrichedHolding;
   onDelete: (id: string) => void;
   onEdit?: () => void;
 }
@@ -67,6 +51,18 @@ const HoldingsTableRow: React.FC<HoldingsTableRowProps> = ({
     }
   };
 
+  // Convert EnrichedHolding to the format expected by EditHoldingForm
+  const holdingForEdit = {
+    id: holding.id,
+    ticker: holding.ticker,
+    company_name: holding.companyName,
+    shares: holding.shares,
+    avg_cost: holding.avgCost,
+    purchase_date: new Date().toISOString().split('T')[0], // We'll need to get this from somewhere else
+    sector: holding.sector,
+    portfolio_id: '' // We'll need to get this from somewhere else
+  };
+
   return (
     <>
       <TableRow className="hover:bg-muted/50">
@@ -74,7 +70,7 @@ const HoldingsTableRow: React.FC<HoldingsTableRowProps> = ({
           <div>
             <div className="font-semibold">{holding.ticker}</div>
             <div className="text-sm text-muted-foreground truncate max-w-[150px]">
-              {holding.company_name}
+              {holding.companyName}
             </div>
           </div>
         </TableCell>
@@ -87,27 +83,27 @@ const HoldingsTableRow: React.FC<HoldingsTableRowProps> = ({
           {formatShares(holding.shares)}
         </TableCell>
         <TableCell className="text-right">
-          {formatCurrency(holding.avg_cost)}
+          {formatCurrency(holding.avgCost)}
         </TableCell>
         <TableCell className="text-right">
           {formatCurrency(holding.currentPrice)}
         </TableCell>
         <TableCell className="text-right">
-          {formatCurrency(holding.currentValue)}
+          {formatCurrency(holding.marketValue)}
         </TableCell>
-        <TableCell className={`text-right ${getChangeColor(holding.dailyChange)}`}>
+        <TableCell className={`text-right ${getChangeColor(holding.dayChange)}`}>
           <div>
-            <div>{formatCurrency(holding.dailyChange)}</div>
+            <div>{formatCurrency(holding.dayChange)}</div>
             <div className="text-xs">
-              {formatPercent(holding.dailyChangePercent)}
+              {formatPercent(holding.dayChangePercent)}
             </div>
           </div>
         </TableCell>
-        <TableCell className={`text-right ${getChangeColor(holding.totalGainLoss)}`}>
+        <TableCell className={`text-right ${getChangeColor(holding.unrealizedPnL)}`}>
           <div>
-            <div>{formatCurrency(holding.totalGainLoss)}</div>
+            <div>{formatCurrency(holding.unrealizedPnL)}</div>
             <div className="text-xs">
-              {formatPercent(holding.totalGainLossPercent)}
+              {formatPercent(holding.unrealizedPnLPercent)}
             </div>
           </div>
         </TableCell>
@@ -137,7 +133,7 @@ const HoldingsTableRow: React.FC<HoldingsTableRowProps> = ({
       </TableRow>
 
       <EditHoldingForm
-        holding={holding}
+        holding={holdingForEdit}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSuccess={handleEditSuccess}
