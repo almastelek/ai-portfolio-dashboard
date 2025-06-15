@@ -152,6 +152,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          content: Json
+          created_at: string
+          generated_at: string
+          id: string
+          report_type: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          report_type: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          report_type?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trade_ideas: {
         Row: {
           ai_generated: boolean | null

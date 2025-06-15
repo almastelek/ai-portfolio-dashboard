@@ -3,7 +3,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useReports } from '@/hooks/useReports';
-import { FileText, TrendingUp, Clock, Users, ExternalLink, BarChart3, AlertCircle, Target, Calendar, DollarSign } from 'lucide-react';
+import { useReportPersistence } from '@/hooks/useReportPersistence';
+import { FileText, TrendingUp, Clock, Users, ExternalLink, BarChart3, AlertCircle, Target, Calendar, DollarSign, Save, History } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import SavedReportsHistory from './SavedReportsHistory';
 
 interface ReportSection {
   title: string;
@@ -87,7 +90,9 @@ interface Report {
 
 const ReportsCenter = () => {
   const [activeReport, setActiveReport] = useState<Report | null>(null);
+  const [activeTab, setActiveTab] = useState('generate');
   const { loading, generateReport } = useReports();
+  const { saveReport, loading: saveLoading } = useReportPersistence();
 
   const handleGenerateReport = async (type: 'morning' | 'evening' | 'weekly') => {
     try {
@@ -95,10 +100,26 @@ const ReportsCenter = () => {
       console.log('Generated report response:', response);
       if (response && response.report) {
         setActiveReport(response.report);
+        setActiveTab('current');
       }
     } catch (error) {
       console.error('Error generating report:', error);
     }
+  };
+
+  const handleSaveReport = async () => {
+    if (!activeReport) return;
+    
+    try {
+      await saveReport(activeReport);
+    } catch (error) {
+      console.error('Error saving report:', error);
+    }
+  };
+
+  const handleSelectSavedReport = (report: Report) => {
+    setActiveReport(report);
+    setActiveTab('current');
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -414,98 +435,126 @@ const ReportsCenter = () => {
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="financial-card">
-          <div className="flex items-center space-x-3 mb-4">
-            <TrendingUp className="h-8 w-8 text-blue-500" />
-            <div>
-              <h3 className="font-semibold">Morning Brief</h3>
-              <p className="text-sm text-muted-foreground">Pre-market analysis with portfolio focus</p>
-            </div>
-          </div>
-          <Button 
-            onClick={() => handleGenerateReport('morning')}
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? 'Generating...' : 'Generate Morning Report'}
-          </Button>
-        </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="generate">Generate Reports</TabsTrigger>
+          <TabsTrigger value="current">Current Report</TabsTrigger>
+          <TabsTrigger value="history">Report History</TabsTrigger>
+        </TabsList>
 
-        <Card className="financial-card">
-          <div className="flex items-center space-x-3 mb-4">
-            <FileText className="h-8 w-8 text-green-500" />
-            <div>
-              <h3 className="font-semibold">Evening Recap</h3>
-              <p className="text-sm text-muted-foreground">Daily performance & news impact</p>
-            </div>
-          </div>
-          <Button 
-            onClick={() => handleGenerateReport('evening')}
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? 'Generating...' : 'Generate Evening Report'}
-          </Button>
-        </Card>
-
-        <Card className="financial-card">
-          <div className="flex items-center space-x-3 mb-4">
-            <BarChart3 className="h-8 w-8 text-purple-500" />
-            <div>
-              <h3 className="font-semibold">Weekly Digest</h3>
-              <p className="text-sm text-muted-foreground">Comprehensive weekly analysis</p>
-            </div>
-          </div>
-          <Button 
-            onClick={() => handleGenerateReport('weekly')}
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? 'Generating...' : 'Generate Weekly Report'}
-          </Button>
-        </Card>
-      </div>
-
-      {activeReport && (
-        <Card className="financial-card">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b pb-4">
-              <div>
-                <h3 className="text-xl font-bold">{activeReport.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Generated on {formatTimestamp(activeReport.generated_at)}
-                </p>
-              </div>
-              <Badge variant="outline">{activeReport.type.replace('_', ' ').toUpperCase()}</Badge>
-            </div>
-            
-            <div className="space-y-8">
-              {activeReport.sections && Object.entries(activeReport.sections).map(([key, section]) => (
-                <div key={key} className="border-l-4 border-primary pl-6 py-2">
-                  <h4 className="font-semibold mb-4 text-lg flex items-center">
-                    <DollarSign className="h-5 w-5 mr-2 text-primary" />
-                    {section.title}
-                  </h4>
-                  {renderSectionContent(section)}
+        <TabsContent value="generate" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="financial-card">
+              <div className="flex items-center space-x-3 mb-4">
+                <TrendingUp className="h-8 w-8 text-blue-500" />
+                <div>
+                  <h3 className="font-semibold">Morning Brief</h3>
+                  <p className="text-sm text-muted-foreground">Pre-market analysis with portfolio focus</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
+              </div>
+              <Button 
+                onClick={() => handleGenerateReport('morning')}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? 'Generating...' : 'Generate Morning Report'}
+              </Button>
+            </Card>
 
-      {!activeReport && (
-        <Card className="financial-card">
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Reports Generated Yet</h3>
-            <p className="text-muted-foreground">
-              Generate your first report to get AI-powered analysis of your portfolio with real market data and news insights.
-            </p>
+            <Card className="financial-card">
+              <div className="flex items-center space-x-3 mb-4">
+                <FileText className="h-8 w-8 text-green-500" />
+                <div>
+                  <h3 className="font-semibold">Evening Recap</h3>
+                  <p className="text-sm text-muted-foreground">Daily performance & news impact</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => handleGenerateReport('evening')}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? 'Generating...' : 'Generate Evening Report'}
+              </Button>
+            </Card>
+
+            <Card className="financial-card">
+              <div className="flex items-center space-x-3 mb-4">
+                <BarChart3 className="h-8 w-8 text-purple-500" />
+                <div>
+                  <h3 className="font-semibold">Weekly Digest</h3>
+                  <p className="text-sm text-muted-foreground">Comprehensive weekly analysis</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => handleGenerateReport('weekly')}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? 'Generating...' : 'Generate Weekly Report'}
+              </Button>
+            </Card>
           </div>
-        </Card>
-      )}
+        </TabsContent>
+
+        <TabsContent value="current" className="space-y-4">
+          {activeReport ? (
+            <Card className="financial-card">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b pb-4">
+                  <div>
+                    <h3 className="text-xl font-bold">{activeReport.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Generated on {formatTimestamp(activeReport.generated_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="outline">{activeReport.type.replace('_', ' ').toUpperCase()}</Badge>
+                    <Button
+                      onClick={handleSaveReport}
+                      disabled={saveLoading}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {saveLoading ? 'Saving...' : 'Save Report'}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-8">
+                  {activeReport.sections && Object.entries(activeReport.sections).map(([key, section]) => (
+                    <div key={key} className="border-l-4 border-primary pl-6 py-2">
+                      <h4 className="font-semibold mb-4 text-lg flex items-center">
+                        <DollarSign className="h-5 w-5 mr-2 text-primary" />
+                        {section.title}
+                      </h4>
+                      {renderSectionContent(section)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="financial-card">
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Report Selected</h3>
+                <p className="text-muted-foreground mb-4">
+                  Generate a new report or select one from your saved reports.
+                </p>
+                <Button onClick={() => setActiveTab('generate')}>
+                  Generate New Report
+                </Button>
+              </div>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <SavedReportsHistory onSelectReport={handleSelectSavedReport} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
