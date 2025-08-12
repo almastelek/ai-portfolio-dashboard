@@ -1,8 +1,6 @@
-# Welcome to your Lovable project
-
 ## Project info
 
-**URL**: https://lovable.dev/projects/c803adfd-d78e-490e-a31a-5a4b17a6e955
+Here's a personal tool that I've been using to help me monitor my investments.
 
 ## How can I edit this code?
 
