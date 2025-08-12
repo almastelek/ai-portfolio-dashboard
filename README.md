@@ -12,3 +12,14 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 - Supabase
+
+## Screenshots
+# Dashboard
+
+# Reports
+
+# Investor Tracking
+
+# Alerts
+
+# Research (Coming Soon)
