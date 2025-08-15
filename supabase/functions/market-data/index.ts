@@ -13,8 +13,18 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let requestBody;
   try {
-    const { ticker } = await req.json()
+    requestBody = await req.json();
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid JSON in request body' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+    );
+  }
+
+  try {
+    const { ticker } = requestBody;
 
     if (!ticker) {
       throw new Error('Ticker symbol is required')
@@ -92,7 +102,7 @@ serve(async (req) => {
     
     // Return fallback data with error indication
     const fallbackData = {
-      ticker: (await req.json()).ticker?.toUpperCase() || 'UNKNOWN',
+      ticker: requestBody?.ticker?.toUpperCase() || 'UNKNOWN',
       currentPrice: 0,
       change: 0,
       changePercent: 0,
