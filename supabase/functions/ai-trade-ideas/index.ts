@@ -53,6 +53,14 @@ serve(async (req) => {
         rationale: 'Despite recent volatility, NVDA remains the leader in AI chips. Strong earnings growth expected to continue as AI adoption accelerates.',
         target_price: 500.00,
         ai_generated: true
+      },
+      {
+        ticker: 'GOOGL',
+        idea_type: type,
+        title: 'Ownership of entire AI supply chain from silicon to applications',
+        rationale: 'Google is the only company in the world that owns the entire AI supply chain from silicon to applications. This gives it a unique advantage over competitors.',
+        target_price: 400.00,
+        ai_generated: true
       }
     ]
 
